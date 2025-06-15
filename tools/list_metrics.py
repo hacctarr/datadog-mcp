@@ -49,7 +49,7 @@ def get_tool_definition() -> Tool:
 async def handle_call(request: CallToolRequest) -> CallToolResult:
     """Handle the list_metrics tool call."""
     try:
-        args = request.arguments or {}
+        args = request.params.arguments or {}
         
         filter_query = args.get("filter", "")
         limit = args.get("limit", 100)

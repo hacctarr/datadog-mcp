@@ -21,35 +21,13 @@ def get_tool_definition() -> Tool:
         inputSchema={
             "type": "object",
             "properties": {
-                "service": {
-                    "type": "string",
-                    "description": "Service name to get metric field values for (e.g., 'content', 'aws-apigateway')",
-                },
                 "metric_name": {
                     "type": "string",
-                    "description": "Datadog metric name to get field values for",
+                    "description": "Datadog metric name to get field values for (e.g., 'aws.apigateway.count', 'system.cpu.user')",
                 },
                 "field_name": {
                     "type": "string", 
-                    "description": "Field name to get all possible values for (e.g., 'region', 'account', 'environment')",
-                },
-                "time_range": {
-                    "type": "string",
-                    "description": "Time range to look back for value discovery",
-                    "enum": ["1h", "4h", "8h", "1d", "7d", "14d", "30d"],
-                    "default": "7d",
-                },
-                "environment": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Environment(s) to filter value discovery for. Can be one or multiple environments.",
-                    "default": ["prod"],
-                },
-                "aggregation": {
-                    "type": "string",
-                    "description": "Metric aggregation method",
-                    "enum": ["avg", "sum", "min", "max", "count"],
-                    "default": "avg",
+                    "description": "Field name to get all possible values for (e.g., 'service', 'region', 'account', 'environment')",
                 },
                 "format": {
                     "type": "string",
@@ -59,7 +37,7 @@ def get_tool_definition() -> Tool:
                 },
             },
             "additionalProperties": False,
-            "required": ["service", "metric_name", "field_name"],
+            "required": ["metric_name", "field_name"],
         },
     )
 
@@ -67,25 +45,11 @@ def get_tool_definition() -> Tool:
 async def handle_call(request: CallToolRequest) -> CallToolResult:
     """Handle the get_metric_field_values tool call."""
     try:
-        args = request.arguments or {}
+        args = request.params.arguments or {}
         
-        service = args.get("service")
         metric_name = args.get("metric_name")
         field_name = args.get("field_name")
-        time_range = args.get("time_range", "7d")
-        environment = args.get("environment", ["prod"])
-        aggregation = args.get("aggregation", "avg")
         format_type = args.get("format", "list")
-        
-        # Handle legacy single environment string
-        if isinstance(environment, str):
-            environment = [environment]
-        
-        if not service:
-            return CallToolResult(
-                content=[TextContent(type="text", text="Error: service parameter is required")],
-                isError=True,
-            )
         
         if not metric_name:
             return CallToolResult(
@@ -101,30 +65,20 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
         
         # Fetch field values
         field_values = await fetch_metric_field_values(
-            service=service,
             metric_name=metric_name,
             field_name=field_name,
-            time_range=time_range,
-            environment=environment,
-            aggregation=aggregation,
         )
         
         # Format output
         if format_type == "json":
             content = json.dumps({
                 "metric_name": metric_name,
-                "service": service,
                 "field_name": field_name,
-                "time_range": time_range,
-                "environment": environment,
-                "aggregation": aggregation,
                 "field_values": field_values
             }, indent=2)
         else:  # list format
             # Add summary header
-            summary = f"Values for field '{field_name}' in metric '{metric_name}' | Service: {service} | Time Range: {time_range}"
-            if environment:
-                summary += f" | Environment: {', '.join(environment)}"
+            summary = f"Values for field '{field_name}' in metric '{metric_name}'"
             
             content = f"{summary}\n{'=' * len(summary)}\n\n"
             
@@ -132,21 +86,20 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
                 content += f"Found {len(field_values)} unique values for field '{field_name}':\n\n"
                 content += "\n".join([f"  • {value}" for value in field_values])
                 content += f"\n\nUsage examples:\n"
-                content += f"• Filter by specific value: aggregation_by: [\"{field_name}\"] with environment filter\n"
-                content += f"• Combine with other fields: aggregation_by: [\"{field_name}\", \"service\"]\n"
+                content += f"• Filter by specific value: add filter {field_name}:<value> to your query\n"
+                content += f"• Group by this field: aggregation_by: [\"{field_name}\"]\n"
+                content += f"• Combine with other fields: aggregation_by: [\"{field_name}\", \"env\"]\n"
                 if field_values:
                     sample_value = field_values[0]
                     content += f"• Query for specific {field_name}: add filter {field_name}:{sample_value} to your query"
             else:
-                content += f"No values found for field '{field_name}' in the specified time range.\n\n"
+                content += f"No values found for field '{field_name}'.\n\n"
                 content += "This could mean:\n"
                 content += f"• The field '{field_name}' doesn't exist for this metric\n"
-                content += f"• No data exists in the specified time range ({time_range})\n"
-                content += f"• The service '{service}' doesn't have this metric with this field\n\n"
+                content += f"• The metric '{metric_name}' doesn't exist\n\n"
                 content += "Try:\n"
                 content += "• Using get_metric_fields tool to see available fields\n"
-                content += "• Extending the time_range (e.g., '30d')\n"
-                content += "• Checking the service name"
+                content += "• Checking the metric name"
         
         return CallToolResult(
             content=[TextContent(type="text", text=content)],

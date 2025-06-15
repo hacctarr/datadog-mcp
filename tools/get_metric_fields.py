@@ -27,15 +27,9 @@ def get_tool_definition() -> Tool:
                 },
                 "time_range": {
                     "type": "string",
-                    "description": "Time range to look back for field discovery",
+                    "description": "Time range to look back for field discovery (currently not used by the API but kept for consistency)",
                     "enum": ["1h", "4h", "8h", "1d", "7d", "14d", "30d"],
                     "default": "1h",
-                },
-                "environment": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Environment(s) to filter field discovery for. Can be one or multiple environments.",
-                    "default": ["prod"],
                 },
                 "format": {
                     "type": "string",
@@ -53,16 +47,11 @@ def get_tool_definition() -> Tool:
 async def handle_call(request: CallToolRequest) -> CallToolResult:
     """Handle the get_metric_fields tool call."""
     try:
-        args = request.arguments or {}
+        args = request.params.arguments or {}
         
         metric_name = args.get("metric_name")
         time_range = args.get("time_range", "1h")
-        environment = args.get("environment", ["prod"])
         format_type = args.get("format", "list")
-        
-        # Handle legacy single environment string
-        if isinstance(environment, str):
-            environment = [environment]
         
         if not metric_name:
             return CallToolResult(
@@ -74,7 +63,6 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
         available_fields = await fetch_metric_available_fields(
             metric_name=metric_name,
             time_range=time_range,
-            environment=environment,
         )
         
         # Format output
@@ -82,14 +70,11 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
             content = json.dumps({
                 "metric_name": metric_name,
                 "time_range": time_range,
-                "environment": environment,
                 "available_fields": available_fields
             }, indent=2)
         else:  # list format
             # Add summary header
-            summary = f"Available fields for metric '{metric_name}' | Time Range: {time_range}"
-            if environment:
-                summary += f" | Environment: {', '.join(environment)}"
+            summary = f"Available fields for metric '{metric_name}'"
             
             content = f"{summary}\n{'=' * len(summary)}\n\n"
             

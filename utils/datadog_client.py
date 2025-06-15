@@ -289,7 +289,6 @@ async def fetch_metrics_list(
 async def fetch_metric_available_fields(
     metric_name: str,
     time_range: str = "1h",
-    environment: Optional[List[str]] = None,
 ) -> List[str]:
     """Fetch available fields/tags for a metric from Datadog API."""
     
@@ -336,12 +335,8 @@ async def fetch_metric_available_fields(
 
 
 async def fetch_metric_field_values(
-    service: str,
     metric_name: str,
     field_name: str,
-    time_range: str = "1h",
-    environment: Optional[List[str]] = None,
-    aggregation: str = "avg",
 ) -> List[str]:
     """Fetch all possible values for a specific field of a metric from Datadog API."""
     
@@ -350,112 +345,38 @@ async def fetch_metric_field_values(
         "DD-APPLICATION-KEY": DATADOG_APP_KEY,
     }
     
-    # Build metric query to get all values for the specified field
-    # Format: aggregation:metric{filters} by {field}
-    
-    # Start with aggregation and metric
-    query = f"{aggregation}:{metric_name}"
-    
-    # Add filters
-    filters = [f"service:{service}"]
-    
-    # Add environment filters if specified
-    if environment:
-        if len(environment) == 1:
-            filters.append(f"env:{environment[0]}")
-        else:
-            env_filter = "env:" + " OR env:".join(environment)
-            filters.append(f"({env_filter})")
-    
-    # Add filters to query
-    if filters:
-        query += "{" + ",".join(filters) + "}"
-    
-    # Add 'by' clause for the field we want to get values for
-    query += f" by {{{field_name}}}"
-    
-    # Calculate time range in seconds
-    import time
-    to_timestamp = int(time.time())
-    
-    time_deltas = {
-        "1h": 3600,
-        "4h": 14400,
-        "8h": 28800,
-        "1d": 86400,
-        "7d": 604800,
-        "14d": 1209600,
-        "30d": 2592000,
-    }
-    
-    seconds_back = time_deltas.get(time_range, 3600)
-    from_timestamp = to_timestamp - seconds_back
-    
-    # Use GET request with query parameters
-    params = {
-        "query": query,
-        "from": from_timestamp,
-        "to": to_timestamp,
-    }
-    
-    url = f"{DATADOG_API_URL}/api/v1/query"
+    # Use the same endpoint as get_metric_fields but extract values for specific field
+    url = f"{DATADOG_API_URL}/api/v2/metrics/{metric_name}/all-tags"
     
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(url, headers=headers, params=params)
+            response = await client.get(url, headers=headers)
             response.raise_for_status()
             data = response.json()
             
             field_values = set()
             
-            # Extract field values from the series data
-            if "series" in data:
-                for series in data["series"]:
-                    # Check scope for field values
-                    if "scope" in series:
-                        scope = series["scope"]
-                        # Parse scope to extract field values
-                        # Scope format is typically "field1:value1,field2:value2"
-                        for scope_item in scope.split(","):
-                            if ":" in scope_item:
-                                field, value = scope_item.split(":", 1)
-                                field = field.strip()
-                                value = value.strip()
-                                if field == field_name:
-                                    field_values.add(value)
-                    
-                    # Check tags for field values
-                    if "tags" in series:
-                        for tag in series["tags"]:
-                            if ":" in tag:
-                                tag_field, tag_value = tag.split(":", 1)
-                                tag_field = tag_field.strip()
-                                tag_value = tag_value.strip()
-                                if tag_field == field_name:
-                                    field_values.add(tag_value)
-                    
-                    # Check display_name for additional context
-                    if "display_name" in series:
-                        display_name = series["display_name"]
-                        # Display name might contain field values in format like "field:value"
-                        if f"{field_name}:" in display_name:
-                            parts = display_name.split(f"{field_name}:")
-                            if len(parts) > 1:
-                                # Extract value after field_name:
-                                value_part = parts[1].split(",")[0].split("}")[0].strip()
-                                if value_part:
-                                    field_values.add(value_part)
+            # Extract values for the specific field from the tags
+            if "data" in data and "attributes" in data["data"]:
+                attributes = data["data"]["attributes"]
+                
+                # Get tags from the attributes
+                if "tags" in attributes:
+                    for tag in attributes["tags"]:
+                        # Tags are in format "field:value", extract values for the specific field
+                        if ":" in tag:
+                            tag_field, tag_value = tag.split(":", 1)
+                            if tag_field == field_name:
+                                field_values.add(tag_value)
             
             return sorted(list(field_values))
             
         except httpx.HTTPError as e:
-            logger.error(f"HTTP error fetching field values: {e}")
-            logger.error(f"Query: {query}")
-            # Check if it's a 400 error which might indicate invalid metric
-            if hasattr(e, 'response') and e.response.status_code == 400:
-                return []  # Return empty list for invalid metrics
+            logger.error(f"HTTP error fetching metric field values: {e}")
+            if hasattr(e, 'response') and e.response.status_code == 404:
+                logger.warning(f"Metric '{metric_name}' not found")
+                return []
             raise
         except Exception as e:
-            logger.error(f"Error fetching field values: {e}")
-            # For any other error, return empty list
-            return []
+            logger.error(f"Error fetching metric field values: {e}")
+            raise
