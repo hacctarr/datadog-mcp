@@ -11,15 +11,15 @@ async def test_metrics_final():
     print("Testing Service Metrics with Real Data...")
     
     try:
-        from utils.datadog_client import fetch_service_metrics, fetch_multiple_metrics
+        from utils.datadog_client import fetch_metrics
         from utils.formatters import format_metrics_table, format_metrics_summary
         
         # Test single metric with data
         print("🔍 Testing single metric with data...")
-        result = await fetch_service_metrics(
-            service="content",
+        result = await fetch_metrics(
             metric_name="datadog.estimated_usage.logs.ingested_bytes",
-            time_range="1d"
+            time_range="1d",
+            filters={"service": "content"}
         )
         
         print(f"✅ Status: {result.get('status')}")
@@ -46,11 +46,17 @@ async def test_metrics_final():
             "datadog.estimated_usage.logs.indexed_logs"
         ]
         
-        multiple_results = await fetch_multiple_metrics(
-            service="content",
-            metric_names=metrics_to_test,
-            time_range="4h"
-        )
+        multiple_results = {}
+        for metric_name in metrics_to_test:
+            try:
+                result = await fetch_metrics(
+                    metric_name=metric_name,
+                    time_range="4h",
+                    filters={"service": "content"}
+                )
+                multiple_results[metric_name] = result
+            except Exception as e:
+                multiple_results[metric_name] = {"error": str(e)}
         
         print(f"✅ Retrieved {len(multiple_results)} metrics")
         
@@ -71,10 +77,10 @@ async def test_metrics_final():
         time_ranges = ["1h", "4h", "1d"]
         
         for time_range in time_ranges:
-            result = await fetch_service_metrics(
-                service="content",
+            result = await fetch_metrics(
                 metric_name="datadog.estimated_usage.logs.ingested_bytes",
-                time_range=time_range
+                time_range=time_range,
+                filters={"service": "content"}
             )
             
             if result.get('series'):

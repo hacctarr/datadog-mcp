@@ -44,6 +44,8 @@ This is a **Model Context Protocol (MCP) server** that provides Datadog monitori
 - Implements all API endpoints (pipelines, logs, metrics, teams)
 - Handles multiple environments via array parameters
 - Supports aggregation_by for grouping metrics
+- Uses proper Datadog API endpoints (e.g., `/api/v2/metrics/{metric_name}/all-tags` for field discovery)
+- Constructs metric queries in Datadog format: `aggregation:metric{filters} by {fields}`
 
 **`utils/formatters.py`** - Data transformation layer providing:
 - Multiple output formats (table, JSON, summary, timeseries)
@@ -53,10 +55,23 @@ This is a **Model Context Protocol (MCP) server** that provides Datadog monitori
 ### Tool Registration Pattern
 ```python
 TOOLS = {
-    "tool_name": {
-        "definition": module.get_tool_definition,
-        "handler": module.handle_call,
-    }
+    "list_metrics": {
+        "definition": list_metrics.get_tool_definition,
+        "handler": list_metrics.handle_call,
+    },
+    "get_metrics": {
+        "definition": get_metrics.get_tool_definition,
+        "handler": get_metrics.handle_call,
+    },
+    "get_metric_fields": {
+        "definition": get_metric_fields.get_tool_definition,
+        "handler": get_metric_fields.handle_call,
+    },
+    "get_metric_field_values": {
+        "definition": get_metric_field_values.get_tool_definition,
+        "handler": get_metric_field_values.handle_call,
+    },
+    # ... other tools
 }
 ```
 
@@ -68,12 +83,19 @@ Environment parameters now accept arrays for multi-environment queries:
 
 ### Recently Modified Tools
 The `get_metrics` tool (formerly `get_service_metrics`) now supports:
+- General purpose metric querying for any metric (not just service metrics)
+- Flexible parameter-based query construction
+- User-specified metric names, filters, and aggregation fields
 - Multiple environments via array parameter
 - `aggregation_by` parameter accepting any field name(s) as array
 - Automatic field discovery when aggregation fails
 - User prompting with available fields for invalid aggregations
 - Multiple aggregation fields support (e.g., `["service", "environment"]`)
 - Backward compatibility with single environment and aggregation_by strings
+
+The `list_metrics` tool has been added to discover available metrics using the `/api/v2/metrics` endpoint.
+
+The `get_log_fields` tool has been removed as it was based on non-existent API endpoints.
 
 ## Key Implementation Patterns
 

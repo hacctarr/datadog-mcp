@@ -248,33 +248,6 @@ async def fetch_metrics(
             raise
 
 
-async def fetch_multiple_metrics(
-    service: str,
-    metric_names: List[str],
-    time_range: str = "1h",
-    environment: Optional[List[str]] = None,
-    aggregation: str = "avg",
-    aggregation_by: List[str] = None,
-) -> Dict[str, Dict[str, Any]]:
-    """Fetch multiple metrics for a service."""
-    results = {}
-    
-    for metric_name in metric_names:
-        try:
-            result = await fetch_service_metrics(
-                service=service,
-                metric_name=metric_name,
-                time_range=time_range,
-                environment=environment,
-                aggregation=aggregation,
-                aggregation_by=aggregation_by,
-            )
-            results[metric_name] = result
-        except Exception as e:
-            logger.error(f"Error fetching metric {metric_name}: {e}")
-            results[metric_name] = {"error": str(e)}
-    
-    return results
 
 
 async def fetch_metrics_list(

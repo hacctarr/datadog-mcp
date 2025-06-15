@@ -8,7 +8,7 @@ This MCP server enables Claude to:
 
 - **CI/CD Pipeline Management**: List CI pipelines, extract fingerprints
 - **Service Logs Analysis**: Retrieve and analyze service logs with environment and time filtering  
-- **Metrics Monitoring**: Fetch service metrics with statistical analysis across multiple time ranges
+- **Metrics Monitoring**: Query any Datadog metric with flexible filtering, aggregation, and field discovery
 - **Team Management**: List teams, view member details, and manage team information
 
 ## Quick Start
@@ -73,11 +73,7 @@ Then add to Claude Desktop configuration:
   "mcpServers": {
     "datadog": {
       "command": "docker",
-      "args": ["run", "-i", "magistersart/datadog-mcp:latest"],
-      "env": {
-        "DD_API_KEY": "${DD_API_KEY}",
-        "DD_APP_KEY": "${DD_APP_KEY}"
-      }
+      "args": ["run", "-i", "-e", "DD_API_KEY=${DD_API_KEY}", "-e", "DD_APP_KEY=${DD_APP_KEY}", "magistersart/datadog-mcp:latest"]
     }
   }
 }
@@ -221,6 +217,39 @@ Extracts pipeline fingerprints for use in Terraform service definitions.
 - `pipeline_name` (optional): Filter by pipeline name
 - `format` (optional): Output format - "table", "json", or "summary"
 
+### `list_metrics`
+Lists all available metrics from Datadog for metric discovery.
+
+**Arguments:**
+- `filter` (optional): Filter to search for metrics by tags (e.g., 'aws:*', 'env:*', 'service:web')
+- `limit` (optional): Maximum number of metrics to return (default: 100, max: 10000)
+
+### `get_metrics`
+Queries any Datadog metric with flexible filtering and aggregation.
+
+**Arguments:**
+- `metric_name` (required): The metric name to query (e.g., 'aws.apigateway.count', 'system.cpu.user')
+- `time_range` (optional): "1h", "4h", "8h", "1d", "7d", "14d", "30d"
+- `aggregation` (optional): "avg", "sum", "min", "max", "count"
+- `filters` (optional): Dictionary of filters to apply (e.g., {'service': 'web', 'env': 'prod'})
+- `aggregation_by` (optional): List of fields to group results by
+- `format` (optional): "table", "summary", "json", "timeseries"
+
+### `get_metric_fields`
+Retrieves all available fields (tags) for a specific metric.
+
+**Arguments:**
+- `metric_name` (required): The metric name to get fields for
+- `time_range` (optional): "1h", "4h", "8h", "1d", "7d", "14d", "30d"
+
+### `get_metric_field_values`
+Retrieves all values for a specific field of a metric.
+
+**Arguments:**
+- `metric_name` (required): The metric name
+- `field_name` (required): The field name to get values for
+- `time_range` (optional): "1h", "4h", "8h", "1d", "7d", "14d", "30d"
+
 ### `get_service_logs`
 Retrieves service logs with comprehensive filtering capabilities.
 
@@ -230,15 +259,6 @@ Retrieves service logs with comprehensive filtering capabilities.
 - `environment` (optional): "prod", "staging", "backoffice"
 - `log_level` (optional): "INFO", "ERROR", "WARN", "DEBUG"
 - `format` (optional): "table", "text", "json", "summary"
-
-### `get_service_metrics`
-Fetches service metrics with statistical analysis.
-
-**Arguments:**
-- `metric_name` (required): Datadog metric name
-- `time_range` (required): "1h", "4h", "8h", "1d", "7d", "14d", "30d"
-- `environment` (optional): "prod", "staging", "backoffice"
-- `format` (optional): "table", "summary", "json", "timeseries"
 
 ### `get_teams`
 Lists teams and their members.
@@ -257,7 +277,11 @@ Ask Claude to help you with:
 
 "Get error logs for the content service in the last 4 hours"
 
-"What are the latest metrics for log ingestion bytes?"
+"List all available AWS metrics"
+
+"What are the latest metrics for aws.apigateway.count grouped by account?"
+
+"Get all available fields for the system.cpu.user metric"
 
 "List all teams and their members"
 

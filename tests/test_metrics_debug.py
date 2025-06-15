@@ -11,7 +11,7 @@ async def debug_metrics():
     print("Debugging Metrics API...")
     
     try:
-        from utils.datadog_client import fetch_service_metrics
+        from utils.datadog_client import fetch_metrics
         
         # Try different metric names that might exist
         test_metrics = [
@@ -24,10 +24,10 @@ async def debug_metrics():
         for metric in test_metrics:
             print(f"\n🔍 Testing metric: {metric}")
             try:
-                result = await fetch_service_metrics(
-                    service="content",
+                result = await fetch_metrics(
                     metric_name=metric,
-                    time_range="1d"
+                    time_range="1d",
+                    filters={"service": "content"}
                 )
                 
                 print(f"   Status: {result.get('status', 'unknown')}")
@@ -43,8 +43,7 @@ async def debug_metrics():
         # Try without service filter
         print(f"\n🔍 Testing without service filter...")
         try:
-            result = await fetch_service_metrics(
-                service="",
+            result = await fetch_metrics(
                 metric_name="datadog.estimated_usage.logs.ingested_bytes",
                 time_range="1d"
             )

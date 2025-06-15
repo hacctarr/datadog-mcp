@@ -19,14 +19,14 @@ async def test_metrics():
     
     try:
         # Test imports
-        from utils.datadog_client import fetch_service_metrics, fetch_multiple_metrics
+        from utils.datadog_client import fetch_metrics
         from utils.formatters import (
             extract_metrics_info,
             format_metrics_table,
             format_metrics_summary,
             format_metrics_timeseries
         )
-        from tools.get_service_metrics import get_tool_definition
+        from tools.get_metrics import get_tool_definition
         print("✅ All imports successful")
         
         # Test tool definition
@@ -34,15 +34,14 @@ async def test_metrics():
         print(f"✅ Tool definition: {tool_def.name}")
         
         # Test single metric fetch
-        test_service = "content"
         test_metric = "aws.lambda.invocations"
         
-        print(f"🔍 Testing single metric fetch for {test_service}...")
-        single_result = await fetch_service_metrics(
-            service=test_service,
+        print(f"🔍 Testing single metric fetch...")
+        single_result = await fetch_metrics(
             metric_name=test_metric,
             time_range="1h",
-            aggregation="avg"
+            aggregation="avg",
+            filters={"service": "content"}
         )
         
         metric_info = extract_metrics_info(single_result)
@@ -51,7 +50,7 @@ async def test_metrics():
         print(f"   Points: {len(metric_info['points'])}")
         print(f"   Unit: {metric_info['unit']}")
         
-        # Test multiple metrics fetch
+        # Test multiple metrics individually
         test_metrics = [
             "aws.lambda.invocations",
             "aws.lambda.duration",
@@ -59,11 +58,18 @@ async def test_metrics():
         ]
         
         print(f"\n🔍 Testing multiple metrics fetch...")
-        multiple_results = await fetch_multiple_metrics(
-            service=test_service,
-            metric_names=test_metrics,
-            time_range="1h"
-        )
+        multiple_results = {}
+        
+        for metric_name in test_metrics:
+            try:
+                result = await fetch_metrics(
+                    metric_name=metric_name,
+                    time_range="1h",
+                    filters={"service": "content"}
+                )
+                multiple_results[metric_name] = result
+            except Exception as e:
+                multiple_results[metric_name] = {"error": str(e)}
         
         print(f"✅ Multiple metrics fetch successful")
         print(f"   Retrieved {len(multiple_results)} metrics")
@@ -81,10 +87,10 @@ async def test_metrics():
         
         for time_range in time_ranges:
             try:
-                result = await fetch_service_metrics(
-                    service=test_service,
+                result = await fetch_metrics(
                     metric_name="aws.lambda.invocations",
-                    time_range=time_range
+                    time_range=time_range,
+                    filters={"service": "content"}
                 )
                 info = extract_metrics_info(result)
                 print(f"   ✅ {time_range}: {len(info['points'])} points")
@@ -109,11 +115,10 @@ async def test_metrics():
         # Test with environment filter
         print(f"\n🔍 Testing environment filtering...")
         try:
-            env_result = await fetch_service_metrics(
-                service=test_service,
+            env_result = await fetch_metrics(
                 metric_name="aws.lambda.invocations",
                 time_range="1h",
-                environment="prod"
+                filters={"service": "content", "env": "prod"}
             )
             env_info = extract_metrics_info(env_result)
             print(f"✅ Environment filtering works: {len(env_info['points'])} points for prod")
