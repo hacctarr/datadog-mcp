@@ -11,23 +11,87 @@ This MCP server enables Claude to:
 - **Metrics Monitoring**: Fetch service metrics with statistical analysis across multiple time ranges
 - **Team Management**: List teams, view member details, and manage team information
 
+## Quick Start
+
+Choose your preferred method to run the Datadog MCP server:
+
+### 🚀 Docker Hub (Recommended - Fastest)
+```bash
+docker run -e DD_API_KEY="your-datadog-api-key" -e DD_APP_KEY="your-datadog-application-key" -i magistersart/datadog-mcp:latest
+```
+
+### ⚡ GitHub Direct (Latest Code)
+```bash
+docker run -e DD_API_KEY="your-datadog-api-key" -e DD_APP_KEY="your-datadog-application-key" -i $(docker build -q https://github.com/magistersart/dd-mcp.git)
+```
+
+### 🛠️ UV Quick Run (Python)
+```bash
+export DD_API_KEY="your-datadog-api-key" DD_APP_KEY="your-datadog-application-key"
+git clone https://github.com/magistersart/dd-mcp.git /tmp/dd-mcp && cd /tmp/dd-mcp && uv run server.py
+```
+
+### 📦 Docker Compose
+```bash
+export DD_API_KEY="your-datadog-api-key" DD_APP_KEY="your-datadog-application-key"
+git clone https://github.com/magistersart/dd-mcp.git && cd dd-mcp && docker-compose up
+```
+
+**Method Comparison:**
+
+| Method | Speed | Latest Code | Multiarch | Disk Usage | Best For |
+|--------|-------|-------------|-----------|------------|----------|
+| 🚀 Docker Hub | ⚡⚡⚡ | ✅ (tagged) | ✅ | Minimal | Production, Quick Setup |
+| ⚡ GitHub Direct | ⚡⚡ | ✅ (bleeding edge) | ❌ | Minimal | Testing Latest Changes |
+| 🛠️ UV Quick Run | ⚡ | ✅ (bleeding edge) | ✅ | Minimal | Python Development |
+| 📦 Docker Compose | ⚡⚡ | ✅ (bleeding edge) | ❌ | Medium | Development, Orchestration |
+
 ## Requirements
 
-### For Docker Installation
-- Docker and Docker Compose
+### For Docker Methods
+- Docker (and Docker Compose for compose method)
 - Datadog API Key and Application Key
 
-### For Manual Installation
+### For UV/Python Methods  
 - Python 3.13+
 - UV package manager
 - Datadog API Key and Application Key
 
-## Installation
+## Claude Desktop Integration
 
-### For Claude Desktop
+### Using Docker Hub Image (Recommended)
 
-Add this to your Claude Desktop MCP configuration file:
+First, set your environment variables:
+```bash
+export DD_API_KEY="your-datadog-api-key"
+export DD_APP_KEY="your-datadog-application-key"
+```
 
+Then add to Claude Desktop configuration:
+```json
+{
+  "mcpServers": {
+    "datadog": {
+      "command": "docker",
+      "args": ["run", "-i", "magistersart/datadog-mcp:latest"],
+      "env": {
+        "DD_API_KEY": "${DD_API_KEY}",
+        "DD_APP_KEY": "${DD_APP_KEY}"
+      }
+    }
+  }
+}
+```
+
+### Using Local Installation
+
+First, set your environment variables:
+```bash
+export DD_API_KEY="your-datadog-api-key"
+export DD_APP_KEY="your-datadog-application-key"
+```
+
+Then add to Claude Desktop configuration:
 ```json
 {
   "mcpServers": {
@@ -35,13 +99,15 @@ Add this to your Claude Desktop MCP configuration file:
       "command": "python",
       "args": ["/path/to/dd-mcp/server.py"],
       "env": {
-        "DD_API_KEY": "your-datadog-api-key",
-        "DD_APP_KEY": "your-datadog-application-key"
+        "DD_API_KEY": "${DD_API_KEY}",
+        "DD_APP_KEY": "${DD_APP_KEY}"
       }
     }
   }
 }
 ```
+
+## Detailed Installation Options
 
 ### Docker Installation
 
