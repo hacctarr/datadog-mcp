@@ -3,9 +3,12 @@ Get service logs tool
 """
 
 import json
+import logging
 from typing import Any, Dict
 
 from mcp.types import CallToolRequest, CallToolResult, TextContent, Tool
+
+logger = logging.getLogger(__name__)
 
 from utils.datadog_client import fetch_service_logs
 from utils.formatters import extract_log_info, format_logs_as_table, format_logs_as_text
@@ -14,8 +17,8 @@ from utils.formatters import extract_log_info, format_logs_as_table, format_logs
 def get_tool_definition() -> Tool:
     """Get the tool definition for get_service_logs."""
     return Tool(
-        name="get_service_logs",
-        description="Get service logs from Datadog for various time ranges",
+        name="get_logs",
+        description="Get logs from Datadog for various time ranges with flexible filtering",
         inputSchema={
             "type": "object",
             "properties": {
@@ -30,14 +33,14 @@ def get_tool_definition() -> Tool:
                     "default": "1h",
                 },
                 "environment": {
-                    "type": "string",
-                    "description": "Environment to filter logs for",
-                    "enum": ["prod", "staging", "backoffice"],
+                    "type": "array",
+                    "items": {"type": "string"},
+                    "description": "Environment(s) to filter logs for. Can be one or multiple environments.",
+                    "default": ["prod"],
                 },
                 "log_level": {
                     "type": "string",
-                    "description": "Filter by log level",
-                    "enum": ["debug", "info", "warn", "error", "critical"],
+                    "description": "Filter by log level (any valid log level)",
                 },
                 "query": {
                     "type": "string",
@@ -64,13 +67,17 @@ def get_tool_definition() -> Tool:
 
 
 async def handle_call(request: CallToolRequest) -> CallToolResult:
-    """Handle the get_service_logs tool call."""
+    """Handle the get_logs tool call."""
     try:
         args = request.arguments or {}
         
         service = args.get("service")
         time_range = args.get("time_range", "1h")
-        environment = args.get("environment")
+        environment = args.get("environment", ["prod"])
+        
+        # Handle legacy single environment string
+        if isinstance(environment, str):
+            environment = [environment]
         log_level = args.get("log_level")
         query = args.get("query")
         limit = args.get("limit", 100)
@@ -95,6 +102,17 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
         # Extract log info
         logs = extract_log_info(log_events)
         
+        # Check if we got zero results with a custom query
+        if len(logs) == 0 and query and ":" in query:
+            suggestion_msg = f"No logs found with query: '{query}'\n\n"
+            suggestion_msg += "Try adjusting your query or checking if the field names are correct.\n"
+            suggestion_msg += "Common log fields include: service, env, status, host, container, source"
+            
+            return CallToolResult(
+                content=[TextContent(type="text", text=suggestion_msg)],
+                isError=False,
+            )
+        
         # Format output
         if format_type == "json":
             content = json.dumps(logs, indent=2)
@@ -106,7 +124,7 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
         # Add summary header
         summary = f"Service: {service} | Time Range: {time_range} | Found: {len(logs)} logs"
         if environment:
-            summary += f" | Environment: {environment}"
+            summary += f" | Environment: {', '.join(environment)}"
         if log_level:
             summary += f" | Level: {log_level}"
         if query:

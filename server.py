@@ -14,7 +14,7 @@ from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 from mcp.types import CallToolRequest, CallToolResult, Tool, ServerCapabilities
 
-from tools import get_fingerprints, list_pipelines, get_service_logs, get_teams, get_service_metrics
+from tools import get_fingerprints, list_pipelines, get_logs, get_teams, get_metrics, get_metric_fields, get_metric_field_values, list_metrics
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -33,17 +33,29 @@ TOOLS = {
         "definition": get_fingerprints.get_tool_definition,
         "handler": get_fingerprints.handle_call,
     },
-    "get_service_logs": {
-        "definition": get_service_logs.get_tool_definition,
-        "handler": get_service_logs.handle_call,
+    "get_logs": {
+        "definition": get_logs.get_tool_definition,
+        "handler": get_logs.handle_call,
     },
     "get_teams": {
         "definition": get_teams.get_tool_definition,
         "handler": get_teams.handle_call,
     },
-    "get_service_metrics": {
-        "definition": get_service_metrics.get_tool_definition,
-        "handler": get_service_metrics.handle_call,
+    "get_metrics": {
+        "definition": get_metrics.get_tool_definition,
+        "handler": get_metrics.handle_call,
+    },
+    "get_metric_fields": {
+        "definition": get_metric_fields.get_tool_definition,
+        "handler": get_metric_fields.handle_call,
+    },
+    "get_metric_field_values": {
+        "definition": get_metric_field_values.get_tool_definition,
+        "handler": get_metric_field_values.handle_call,
+    },
+    "list_metrics": {
+        "definition": list_metrics.get_tool_definition,
+        "handler": list_metrics.handle_call,
     },
 }
 

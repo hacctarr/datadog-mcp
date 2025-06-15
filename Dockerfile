@@ -20,7 +20,7 @@ COPY utils/ utils/
 COPY server.py ./
 
 # Install dependencies
-RUN uv sync --frozen
+RUN uv sync
 
 # Set environment variables for Datadog API (will be overridden at runtime)
 ENV DD_API_KEY=""
