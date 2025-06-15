@@ -58,7 +58,6 @@ docker run -e DD_API_KEY="your-datadog-api-key" -e DD_APP_KEY="your-datadog-appl
 Build and run directly from the GitHub repository without cloning:
 
 ```bash
-# Note: Requires the repository to be accessible and Dockerfile in root
 docker run -e DD_API_KEY="your-datadog-api-key" -e DD_APP_KEY="your-datadog-application-key" -i $(docker build -q https://github.com/magistersart/dd-mcp.git)
 ```
 
@@ -68,8 +67,6 @@ Or use Docker Buildx for multiarch support:
 docker buildx build --platform linux/amd64,linux/arm64 -t my-datadog-mcp https://github.com/magistersart/dd-mcp.git --load
 docker run -e DD_API_KEY="your-datadog-api-key" -e DD_APP_KEY="your-datadog-application-key" -i my-datadog-mcp
 ```
-
-*Note: If the above doesn't work, the repository may need to be properly synced. Use Option 1 (Docker Hub) for immediate usage.*
 
 #### Option 3: Build from Source
 
