@@ -1,9 +1,13 @@
 [project]
 name = "ddmcp"
 version = "0.1.0"
-description = "Add your description here"
+description = "Datadog MCP server"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "asyncio>=3.4.3",
+    "httpx>=0.28.1",
+    "logging>=0.4.9.6",
     "mcp>=1.9.4",
+    "typing>=3.10.0.0",
 ]

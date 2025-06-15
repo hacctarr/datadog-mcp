@@ -12,7 +12,7 @@ from typing import List
 from mcp.server import Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
-from mcp.types import CallToolRequest, CallToolResult, Tool
+from mcp.types import CallToolRequest, CallToolResult, Tool, ServerCapabilities
 
 from tools import get_fingerprints, list_pipelines, get_service_logs, get_teams, get_service_metrics
 
@@ -84,9 +84,8 @@ async def main():
             InitializationOptions(
                 server_name="datadog-mcp-server",
                 server_version="1.0.0",
-                capabilities=server.get_capabilities(
-                    notification_options=None,
-                    experimental_capabilities=None,
+                capabilities=ServerCapabilities(
+                    tools={}
                 ),
             ),
         )

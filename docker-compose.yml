@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  datadog-mcp:
+    image: magistersart/datadog-mcp:latest
+    environment:
+      - DD_API_KEY=${DD_API_KEY}
+      - DD_APP_KEY=${DD_APP_KEY}
+    stdin_open: true
+    tty: true
+    # Uncomment for development (requires local build)
+    # build: .
+    # volumes:
+    #   - .:/app
