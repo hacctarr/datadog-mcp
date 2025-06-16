@@ -15,7 +15,7 @@ DATADOG_API_URL = "https://api.datadoghq.com"
 DATADOG_API_KEY = os.getenv("DD_API_KEY")
 DATADOG_APP_KEY = os.getenv("DD_APP_KEY")
 
-# Environment variables loaded at module import
+# Datadog API configuration loaded from environment
 
 if not DATADOG_API_KEY or not DATADOG_APP_KEY:
     logger.error("DD_API_KEY and DD_APP_KEY environment variables must be set")
@@ -68,15 +68,13 @@ async def fetch_ci_pipelines(
             raise
 
 
-async def fetch_service_logs(
-    service: str,
+async def fetch_logs(
     time_range: str = "1h",
-    environment: Optional[List[str]] = None,
-    log_level: Optional[str] = None,
+    filters: Optional[Dict[str, str]] = None,
     query: Optional[str] = None,
     limit: int = 100,
 ) -> List[Dict[str, Any]]:
-    """Fetch service logs from Datadog API."""
+    """Fetch logs from Datadog API with flexible filtering."""
     url = f"{DATADOG_API_URL}/api/v2/logs/events/search"
     
     headers = {
@@ -86,23 +84,18 @@ async def fetch_service_logs(
     }
     
     # Build query filter
-    query_parts = [f"service:{service}"]
+    query_parts = []
     
-    if environment:
-        if len(environment) == 1:
-            query_parts.append(f"env:{environment[0]}")
-        else:
-            # For multiple environments, use OR logic
-            env_filter = "env:" + " OR env:".join(environment)
-            query_parts.append(f"({env_filter})")
+    # Add filters from the filters dictionary
+    if filters:
+        for key, value in filters.items():
+            query_parts.append(f"{key}:{value}")
     
-    if log_level:
-        query_parts.append(f"status:{log_level}")
-    
+    # Add free-text query
     if query:
         query_parts.append(query)
     
-    combined_query = " AND ".join(query_parts)
+    combined_query = " AND ".join(query_parts) if query_parts else "*"
     
     payload = {
         "filter": {
@@ -125,6 +118,33 @@ async def fetch_service_logs(
         except Exception as e:
             logger.error(f"Error fetching logs: {e}")
             raise
+
+
+# Backward compatibility alias
+async def fetch_service_logs(
+    service: Optional[str] = None,
+    time_range: str = "1h",
+    environment: Optional[List[str]] = None,
+    log_level: Optional[str] = None,
+    query: Optional[str] = None,
+    limit: int = 100,
+) -> List[Dict[str, Any]]:
+    """Backward compatibility wrapper for fetch_logs."""
+    filters = {}
+    if service:
+        filters["service"] = service
+    if environment and len(environment) > 0:
+        # Use first environment for simplicity
+        filters["env"] = environment[0]
+    if log_level:
+        filters["status"] = log_level
+    
+    return await fetch_logs(
+        time_range=time_range,
+        filters=filters,
+        query=query,
+        limit=limit,
+    )
 
 
 async def fetch_teams() -> List[Dict[str, Any]]:

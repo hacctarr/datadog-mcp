@@ -10,41 +10,33 @@ from mcp.types import CallToolRequest, CallToolResult, Tool, TextContent
 
 logger = logging.getLogger(__name__)
 
-from utils.datadog_client import fetch_service_logs
+from utils.datadog_client import fetch_logs
 from utils.formatters import extract_log_info, format_logs_as_table, format_logs_as_text
 
 
 def get_tool_definition() -> Tool:
-    """Get the tool definition for get_service_logs."""
+    """Get the tool definition for get_logs."""
     return Tool(
         name="get_logs",
-        description="Get logs from Datadog for various time ranges with flexible filtering",
+        description="Search and retrieve logs from Datadog with flexible filtering parameters. Similar to get_metrics but for log data.",
         inputSchema={
             "type": "object",
             "properties": {
-                "service": {
-                    "type": "string",
-                    "description": "Service name to get logs for (e.g., 'content', 'accounts')",
-                },
                 "time_range": {
                     "type": "string",
                     "description": "Time range to look back",
                     "enum": ["1h", "4h", "8h", "1d", "7d", "14d", "30d"],
                     "default": "1h",
                 },
-                "environment": {
-                    "type": "array",
-                    "items": {"type": "string"},
-                    "description": "Environment(s) to filter logs for. Can be one or multiple environments.",
-                    "default": ["prod"],
-                },
-                "log_level": {
-                    "type": "string",
-                    "description": "Filter by log level (any valid log level)",
+                "filters": {
+                    "type": "object",
+                    "description": "Filters to apply to the log search (e.g., {'service': 'web', 'env': 'prod', 'status': 'error', 'host': 'web-01'})",
+                    "additionalProperties": {"type": "string"},
+                    "default": {},
                 },
                 "query": {
                     "type": "string",
-                    "description": "Additional query filter (e.g., 'error OR exception')",
+                    "description": "Free-text search query (e.g., 'error OR exception', 'timeout', 'user_id:12345')",
                 },
                 "limit": {
                     "type": "integer",
@@ -61,7 +53,7 @@ def get_tool_definition() -> Tool:
                 },
             },
             "additionalProperties": False,
-            "required": ["service"],
+            "required": [],
         },
     )
 
@@ -71,30 +63,16 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
     try:
         args = request.arguments or {}
         
-        service = args.get("service")
         time_range = args.get("time_range", "1h")
-        environment = args.get("environment", ["prod"])
-        
-        # Handle legacy single environment string
-        if isinstance(environment, str):
-            environment = [environment]
-        log_level = args.get("log_level")
+        filters = args.get("filters", {})
         query = args.get("query")
         limit = args.get("limit", 100)
         format_type = args.get("format", "table")
         
-        if not service:
-            return CallToolResult(
-                content=[TextContent(type="text", text="Error: service parameter is required")],
-                isError=True,
-            )
-        
-        # Fetch log events
-        log_events = await fetch_service_logs(
-            service=service,
+        # Fetch log events using the new flexible API
+        log_events = await fetch_logs(
             time_range=time_range,
-            environment=environment,
-            log_level=log_level,
+            filters=filters,
             query=query,
             limit=limit,
         )
@@ -122,11 +100,10 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
             content = format_logs_as_table(logs)
         
         # Add summary header
-        summary = f"Service: {service} | Time Range: {time_range} | Found: {len(logs)} logs"
-        if environment:
-            summary += f" | Environment: {', '.join(environment)}"
-        if log_level:
-            summary += f" | Level: {log_level}"
+        summary = f"Time Range: {time_range} | Found: {len(logs)} logs"
+        if filters:
+            filter_strs = [f"{k}={v}" for k, v in filters.items()]
+            summary += f" | Filters: {', '.join(filter_strs)}"
         if query:
             summary += f" | Query: {query}"
         
