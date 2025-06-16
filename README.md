@@ -33,8 +33,10 @@ git clone https://github.com/magistersart/dd-mcp.git /tmp/dd-mcp && cd /tmp/dd-m
 
 ### 📦 Docker Compose
 ```bash
-export DD_API_KEY="your-datadog-api-key" DD_APP_KEY="your-datadog-application-key"
-git clone https://github.com/magistersart/dd-mcp.git && cd dd-mcp && docker-compose up
+git clone https://github.com/magistersart/dd-mcp.git && cd dd-mcp
+echo "DD_API_KEY=your-datadog-api-key" > .env
+echo "DD_APP_KEY=your-datadog-application-key" >> .env
+docker-compose up
 ```
 
 **Method Comparison:**
@@ -61,10 +63,10 @@ git clone https://github.com/magistersart/dd-mcp.git && cd dd-mcp && docker-comp
 
 ### Using Docker Hub Image (Recommended)
 
-First, set your environment variables:
+First, create an .env file with your Datadog credentials:
 ```bash
-export DD_API_KEY="your-datadog-api-key"
-export DD_APP_KEY="your-datadog-application-key"
+echo "DD_API_KEY=your-datadog-api-key" > .env
+echo "DD_APP_KEY=your-datadog-application-key" >> .env
 ```
 
 Then add to Claude Desktop configuration:
@@ -73,7 +75,7 @@ Then add to Claude Desktop configuration:
   "mcpServers": {
     "datadog": {
       "command": "docker",
-      "args": ["run", "-i", "-e", "DD_API_KEY=${DD_API_KEY}", "-e", "DD_APP_KEY=${DD_APP_KEY}", "magistersart/datadog-mcp:latest"]
+      "args": ["run", "-i", "--env-file", ".env", "magistersart/datadog-mcp:latest"]
     }
   }
 }
