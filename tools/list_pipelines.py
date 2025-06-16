@@ -5,7 +5,7 @@ List CI pipelines tool
 import json
 from typing import Any, Dict
 
-from mcp.types import CallToolRequest, CallToolResult, TextContent, Tool
+from mcp.types import CallToolRequest, CallToolResult, Tool, TextContent
 
 from utils.datadog_client import fetch_ci_pipelines
 from utils.formatters import extract_pipeline_info, format_as_table
@@ -56,7 +56,7 @@ def get_tool_definition() -> Tool:
 async def handle_call(request: CallToolRequest) -> CallToolResult:
     """Handle the list_ci_pipelines tool call."""
     try:
-        args = request.params.arguments or {}
+        args = request.arguments or {}
         
         repository = args.get("repository")
         pipeline_name = args.get("pipeline_name")

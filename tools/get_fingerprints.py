@@ -4,7 +4,7 @@ Get pipeline fingerprints tool
 
 from typing import Any, Dict, List
 
-from mcp.types import CallToolRequest, CallToolResult, TextContent, Tool
+from mcp.types import CallToolRequest, CallToolResult, Tool, TextContent
 
 from utils.datadog_client import fetch_ci_pipelines
 from utils.formatters import extract_pipeline_info, format_as_table
@@ -44,7 +44,7 @@ def get_tool_definition() -> Tool:
 async def handle_call(request: CallToolRequest) -> CallToolResult:
     """Handle the get_pipeline_fingerprints tool call."""
     try:
-        args = request.params.arguments or {}
+        args = request.arguments or {}
         
         repositories = args.get("repositories", [])
         pipeline_name = args.get("pipeline_name")

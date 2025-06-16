@@ -5,7 +5,7 @@ Get teams and their members tool
 import json
 from typing import Any, Dict, List
 
-from mcp.types import CallToolRequest, CallToolResult, TextContent, Tool
+from mcp.types import CallToolRequest, CallToolResult, Tool, TextContent
 
 from utils.datadog_client import fetch_teams, fetch_team_memberships
 from utils.formatters import (
@@ -48,7 +48,7 @@ def get_tool_definition() -> Tool:
 async def handle_call(request: CallToolRequest) -> CallToolResult:
     """Handle the get_teams tool call."""
     try:
-        args = request.params.arguments or {}
+        args = request.arguments or {}
         
         team_name = args.get("team_name")
         include_members = args.get("include_members", True)

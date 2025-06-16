@@ -12,12 +12,16 @@ from typing import List
 from mcp.server import Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
-from mcp.types import CallToolRequest, CallToolResult, Tool, ServerCapabilities
+from mcp.types import CallToolRequest, CallToolResult, Tool, ServerCapabilities, TextContent
 
 from tools import get_fingerprints, list_pipelines, get_logs, get_teams, get_metrics, get_metric_fields, get_metric_field_values, list_metrics
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(
+    level=logging.INFO, 
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    force=True
+)
 logger = logging.getLogger("datadog-mcp-server")
 
 # Create MCP server instance
@@ -67,40 +71,53 @@ async def handle_list_tools() -> List[Tool]:
 
 
 @server.call_tool()
-async def handle_call_tool(request: CallToolRequest) -> CallToolResult:
+async def handle_call_tool(name: str, arguments: dict):
     """Handle tool calls."""
     try:
-        if request.name in TOOLS:
-            handler = TOOLS[request.name]["handler"]
-            return await handler(request)
+        if name in TOOLS:
+            # Create mock request for compatibility with existing tools
+            class MockRequest:
+                def __init__(self, name, arguments):
+                    self.name = name
+                    self.arguments = arguments
+            
+            handler = TOOLS[name]["handler"]
+            request = MockRequest(name, arguments)
+            result = await handler(request)
+            
+            # Extract content from CallToolResult and return as list
+            if hasattr(result, 'content'):
+                return result.content
+            else:
+                return [TextContent(type="text", text="Unexpected response format")]
         else:
-            return CallToolResult(
-                content=[{"type": "text", "text": f"Unknown tool: {request.name}"}],
-                isError=True,
-            )
+            return [TextContent(type="text", text=f"Unknown tool: {name}")]
     except Exception as e:
         logger.error(f"Error handling tool call: {e}")
-        return CallToolResult(
-            content=[{"type": "text", "text": f"Error: {str(e)}"}],
-            isError=True,
-        )
+        return [TextContent(type="text", text=f"Error: {str(e)}")]
 
 
 async def main():
     """Main entry point."""
-    # Run the server using stdio transport
-    async with stdio_server() as (read_stream, write_stream):
-        await server.run(
-            read_stream,
-            write_stream,
-            InitializationOptions(
-                server_name="datadog-mcp-server",
-                server_version="1.0.0",
-                capabilities=ServerCapabilities(
-                    tools={}
+    try:
+        logger.info("Starting Datadog MCP Server...")
+        # Run the server using stdio transport
+        async with stdio_server() as (read_stream, write_stream):
+            logger.info("Server transport initialized")
+            await server.run(
+                read_stream,
+                write_stream,
+                InitializationOptions(
+                    server_name="datadog-mcp-server",
+                    server_version="1.0.0",
+                    capabilities=ServerCapabilities(
+                        tools={}
+                    ),
                 ),
-            ),
-        )
+            )
+    except Exception as e:
+        logger.error(f"Server startup failed: {e}")
+        raise
 
 
 if __name__ == "__main__":

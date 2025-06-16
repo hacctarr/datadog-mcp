@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any, Dict
 
-from mcp.types import CallToolRequest, CallToolResult, TextContent, Tool
+from mcp.types import CallToolRequest, CallToolResult, Tool, TextContent
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +45,7 @@ def get_tool_definition() -> Tool:
 async def handle_call(request: CallToolRequest) -> CallToolResult:
     """Handle the get_metric_field_values tool call."""
     try:
-        args = request.params.arguments or {}
+        args = request.arguments or {}
         
         metric_name = args.get("metric_name")
         field_name = args.get("field_name")

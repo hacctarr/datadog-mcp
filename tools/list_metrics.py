@@ -6,7 +6,7 @@ import json
 import logging
 from typing import Any, Dict
 
-from mcp.types import CallToolRequest, CallToolResult, TextContent, Tool
+from mcp.types import CallToolRequest, CallToolResult, Tool, TextContent
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +49,7 @@ def get_tool_definition() -> Tool:
 async def handle_call(request: CallToolRequest) -> CallToolResult:
     """Handle the list_metrics tool call."""
     try:
-        args = request.params.arguments or {}
+        args = request.arguments or {}
         
         filter_query = args.get("filter", "")
         limit = args.get("limit", 100)

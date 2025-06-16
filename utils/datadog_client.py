@@ -15,6 +15,8 @@ DATADOG_API_URL = "https://api.datadoghq.com"
 DATADOG_API_KEY = os.getenv("DD_API_KEY")
 DATADOG_APP_KEY = os.getenv("DD_APP_KEY")
 
+# Environment variables loaded at module import
+
 if not DATADOG_API_KEY or not DATADOG_APP_KEY:
     logger.error("DD_API_KEY and DD_APP_KEY environment variables must be set")
     raise ValueError("Datadog API credentials not configured")
