@@ -402,3 +402,76 @@ async def fetch_metric_field_values(
         except Exception as e:
             logger.error(f"Error fetching metric field values: {e}")
             raise
+
+
+async def fetch_service_definitions(
+    page_size: int = 10,
+    page_number: int = 0,
+    schema_version: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Fetch service definitions from Datadog API."""
+    
+    headers = {
+        "DD-API-KEY": DATADOG_API_KEY,
+        "DD-APPLICATION-KEY": DATADOG_APP_KEY,
+    }
+    
+    # Use the service definitions endpoint
+    url = f"{DATADOG_API_URL}/api/v2/services/definitions"
+    
+    # Build query parameters
+    params = {
+        "page[size]": page_size,
+        "page[number]": page_number,
+    }
+    
+    if schema_version:
+        params["filter[schema_version]"] = schema_version
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            return response.json()
+            
+        except httpx.HTTPError as e:
+            logger.error(f"HTTP error fetching service definitions: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error fetching service definitions: {e}")
+            raise
+
+
+async def fetch_service_definition(
+    service_name: str,
+    schema_version: str = "v2.2",
+) -> Dict[str, Any]:
+    """Fetch a single service definition from Datadog API."""
+    
+    headers = {
+        "DD-API-KEY": DATADOG_API_KEY,
+        "DD-APPLICATION-KEY": DATADOG_APP_KEY,
+    }
+    
+    # Use the specific service definition endpoint
+    url = f"{DATADOG_API_URL}/api/v2/services/definitions/{service_name}"
+    
+    # Build query parameters
+    params = {
+        "schema_version": schema_version,
+    }
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            return response.json()
+            
+        except httpx.HTTPError as e:
+            logger.error(f"HTTP error fetching service definition for '{service_name}': {e}")
+            if hasattr(e, 'response') and e.response.status_code == 404:
+                logger.warning(f"Service definition for '{service_name}' not found")
+            raise
+        except Exception as e:
+            logger.error(f"Error fetching service definition for '{service_name}': {e}")
+            raise

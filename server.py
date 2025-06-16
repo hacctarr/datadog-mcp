@@ -14,7 +14,7 @@ from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 from mcp.types import CallToolRequest, CallToolResult, Tool, ServerCapabilities, TextContent
 
-from tools import get_fingerprints, list_pipelines, get_logs, get_teams, get_metrics, get_metric_fields, get_metric_field_values, list_metrics
+from tools import get_fingerprints, list_pipelines, get_logs, get_teams, get_metrics, get_metric_fields, get_metric_field_values, list_metrics, list_service_definitions, get_service_definition
 
 # Configure logging
 logging.basicConfig(
@@ -60,6 +60,14 @@ TOOLS = {
     "list_metrics": {
         "definition": list_metrics.get_tool_definition,
         "handler": list_metrics.handle_call,
+    },
+    "list_service_definitions": {
+        "definition": list_service_definitions.get_tool_definition,
+        "handler": list_service_definitions.handle_call,
+    },
+    "get_service_definition": {
+        "definition": get_service_definition.get_tool_definition,
+        "handler": get_service_definition.handle_call,
     },
 }
 

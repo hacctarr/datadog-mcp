@@ -9,6 +9,7 @@ This MCP server enables Claude to:
 - **CI/CD Pipeline Management**: List CI pipelines, extract fingerprints
 - **Service Logs Analysis**: Retrieve and analyze service logs with environment and time filtering  
 - **Metrics Monitoring**: Query any Datadog metric with flexible filtering, aggregation, and field discovery
+- **Service Definitions**: List and retrieve detailed service definitions with metadata, ownership, and configuration
 - **Team Management**: List teams, view member details, and manage team information
 
 ## Quick Start
@@ -252,6 +253,23 @@ Retrieves all values for a specific field of a metric.
 - `field_name` (required): The field name to get values for
 - `time_range` (optional): "1h", "4h", "8h", "1d", "7d", "14d", "30d"
 
+### `list_service_definitions`
+Lists all service definitions from Datadog with pagination and filtering.
+
+**Arguments:**
+- `page_size` (optional): Number of service definitions per page (default: 10, max: 100)
+- `page_number` (optional): Page number for pagination (0-indexed, default: 0)
+- `schema_version` (optional): Filter by schema version (e.g., 'v2', 'v2.1', 'v2.2')
+- `format` (optional): Output format - "table", "json", or "summary"
+
+### `get_service_definition`
+Retrieves the definition of a specific service with detailed metadata.
+
+**Arguments:**
+- `service_name` (required): Name of the service to retrieve
+- `schema_version` (optional): Schema version to retrieve (default: "v2.2", options: "v1", "v2", "v2.1", "v2.2")
+- `format` (optional): Output format - "formatted", "json", or "yaml"
+
 ### `get_service_logs`
 Retrieves service logs with comprehensive filtering capabilities.
 
@@ -285,6 +303,10 @@ Ask Claude to help you with:
 
 "Get all available fields for the system.cpu.user metric"
 
+"List all service definitions in my organization"
+
+"Get the definition for the user-api service"
+
 "List all teams and their members"
 
 "Extract pipeline fingerprints for Terraform configuration"
@@ -310,7 +332,3 @@ Ask Claude to help you with:
 **Note:** These are two different keys:
 - **API Key**: Used for authentication with Datadog's API
 - **Application Key**: Used for authorization and is tied to a specific user account
-
-## License
-
-This project is licensed under the MIT License.
