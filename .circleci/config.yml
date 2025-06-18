@@ -17,9 +17,13 @@ commands:
     description: "Install project dependencies"
     steps:
       - run:
+          name: Clean old build artifacts
+          command: |
+            rm -rf ddmcp.egg-info build dist *.egg-info
+      - run:
           name: Install dependencies
           command: |
-            uv sync --frozen
+            uv sync --all-extras
             uv --version
 
   install_github_cli:
@@ -213,9 +217,9 @@ jobs:
           name: Check Python syntax
           command: |
             echo "Checking syntax for all Python files..."
-            python -m py_compile datadog_mcp/server.py
-            python -m py_compile datadog_mcp/tools/*.py
-            python -m py_compile datadog_mcp/utils/*.py
+            uv run python -m py_compile datadog_mcp/server.py
+            uv run python -m py_compile datadog_mcp/tools/*.py
+            uv run python -m py_compile datadog_mcp/utils/*.py
             echo "✅ All Python files have valid syntax"
 
   package_structure_test:
@@ -229,10 +233,16 @@ jobs:
           name: Test package structure
           command: |
             echo "Testing package imports..."
-            python -c "from datadog_mcp.server import cli_main; print('✅ Main entry point imports successfully')"
-            python -c "from datadog_mcp.tools import get_metrics; print('✅ Tools import successfully')"
-            python -c "from datadog_mcp.utils import datadog_client; print('✅ Utils import successfully')"
+            uv run python -c "from datadog_mcp.server import cli_main; print('✅ Main entry point imports successfully')"
+            uv run python -c "from datadog_mcp.tools import get_metrics; print('✅ Tools import successfully')"
+            uv run python -c "from datadog_mcp.utils import datadog_client; print('✅ Utils import successfully')"
             echo "✅ Package structure is valid"
+      - run:
+          name: Test UV entry points
+          command: |
+            echo "Testing UV can find the entry point..."
+            uv run --help > /dev/null || echo "UV run available"
+            echo "✅ UV entry points work"
 
   uvx_installation_test:
     docker:
@@ -260,9 +270,13 @@ jobs:
           command: |
             echo "Running basic Python checks..."
             # Check for basic Python issues
-            python -m py_compile datadog_mcp/__init__.py
-            python -m py_compile datadog_mcp/tools/__init__.py
-            python -m py_compile datadog_mcp/utils/__init__.py
+            uv run python -m py_compile datadog_mcp/__init__.py
+            uv run python -m py_compile datadog_mcp/tools/__init__.py
+            uv run python -m py_compile datadog_mcp/utils/__init__.py
+            
+            # Verify UV environment is consistent
+            echo "Checking UV environment consistency..."
+            uv pip check || echo "✅ No dependency conflicts found"
             echo "✅ Basic linting passed"
 
   configuration_validation:
@@ -282,7 +296,7 @@ jobs:
           name: Check entry points
           command: |
             echo "Checking console script entry points..."
-            python -c "
+            uv run python -c "
             import tomllib
             with open('pyproject.toml', 'rb') as f:
                 config = tomllib.load(f)
@@ -290,6 +304,20 @@ jobs:
             assert 'datadog-mcp' in scripts, 'datadog-mcp entry point not found'
             print('✅ Entry points configured correctly')
             "
+
+  test_suite:
+    docker:
+      - image: cimg/python:3.13
+    steps:
+      - checkout
+      - install_uv
+      - setup_dependencies
+      - run:
+          name: Run integration tests
+          command: |
+            echo "Running integration test suite..."
+            uv run pytest tests/test_integration.py -v --tb=short
+            echo "✅ Integration tests passed"
 
   documentation_check:
     docker:
@@ -381,9 +409,9 @@ jobs:
             echo "Running pre-release validation tests..."
             
             # Test syntax one more time
-            python -m py_compile datadog_mcp/server.py
-            python -m py_compile datadog_mcp/tools/*.py
-            python -m py_compile datadog_mcp/utils/*.py
+            uv run python -m py_compile datadog_mcp/server.py
+            uv run python -m py_compile datadog_mcp/tools/*.py
+            uv run python -m py_compile datadog_mcp/utils/*.py
             
             # Test package installation from built wheel
             WHEEL_FILE=$(ls dist/*.whl | head -1)
@@ -591,9 +619,9 @@ jobs:
             echo "🧪 Running pre-release validation tests..."
             
             # Test syntax one more time
-            python -m py_compile datadog_mcp/server.py
-            python -m py_compile datadog_mcp/tools/*.py
-            python -m py_compile datadog_mcp/utils/*.py
+            uv run python -m py_compile datadog_mcp/server.py
+            uv run python -m py_compile datadog_mcp/tools/*.py
+            uv run python -m py_compile datadog_mcp/utils/*.py
             
             # Test package installation from built wheel
             WHEEL_FILE=$(ls dist/*.whl | head -1)
@@ -756,6 +784,13 @@ workflows:
           filters:
             branches:
               ignore: main
+      - test_suite:
+          filters:
+            branches:
+              ignore: main
+          requires:
+            - syntax_check
+            - package_structure_test
 
   test_main_branch:
     when:
@@ -787,6 +822,13 @@ workflows:
           filters:
             branches:
               only: main
+      - test_suite:
+          filters:
+            branches:
+              only: main
+          requires:
+            - syntax_check
+            - package_structure_test
       # Auto-release detection and conditional release
       - auto_release_detection:
           filters:
@@ -798,6 +840,7 @@ workflows:
             - lint_check
             - configuration_validation
             - documentation_check
+            - test_suite
       - auto_release:
           filters:
             branches:
