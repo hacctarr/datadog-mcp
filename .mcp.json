@@ -1,15 +1,12 @@
 {
   "mcpServers": {
     "datadog-mcp": {
-      "command": "docker",
-      "args": [
-        "run",
-        "--rm",
-        "-i",
-        "--env-file",
-        ".env",
-        "magistersart/datadog-mcp:latest"
-      ]
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/shelfio/datadog-mcp.git@v0.0.4", "datadog-mcp"],
+      "env": {
+        "DD_API_KEY": "${DD_API_KEY}",
+        "DD_APP_KEY": "${DD_APP_KEY}"
+      }
     },
     "circleci-mcp-server": {
       "command": "npx",
