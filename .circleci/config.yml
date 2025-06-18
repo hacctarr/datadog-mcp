@@ -213,9 +213,9 @@ jobs:
           name: Check Python syntax
           command: |
             echo "Checking syntax for all Python files..."
-            python -m py_compile ddmcp/server.py
-            python -m py_compile ddmcp/tools/*.py
-            python -m py_compile ddmcp/utils/*.py
+            python -m py_compile datadog_mcp/server.py
+            python -m py_compile datadog_mcp/tools/*.py
+            python -m py_compile datadog_mcp/utils/*.py
             echo "✅ All Python files have valid syntax"
 
   package_structure_test:
@@ -229,9 +229,9 @@ jobs:
           name: Test package structure
           command: |
             echo "Testing package imports..."
-            python -c "from ddmcp.server import cli_main; print('✅ Main entry point imports successfully')"
-            python -c "from ddmcp.tools import get_metrics; print('✅ Tools import successfully')"
-            python -c "from ddmcp.utils import datadog_client; print('✅ Utils import successfully')"
+            python -c "from datadog_mcp.server import cli_main; print('✅ Main entry point imports successfully')"
+            python -c "from datadog_mcp.tools import get_metrics; print('✅ Tools import successfully')"
+            python -c "from datadog_mcp.utils import datadog_client; print('✅ Utils import successfully')"
             echo "✅ Package structure is valid"
 
   uvx_installation_test:
@@ -260,9 +260,9 @@ jobs:
           command: |
             echo "Running basic Python checks..."
             # Check for basic Python issues
-            python -m py_compile ddmcp/__init__.py
-            python -m py_compile ddmcp/tools/__init__.py
-            python -m py_compile ddmcp/utils/__init__.py
+            python -m py_compile datadog_mcp/__init__.py
+            python -m py_compile datadog_mcp/tools/__init__.py
+            python -m py_compile datadog_mcp/utils/__init__.py
             echo "✅ Basic linting passed"
 
   configuration_validation:
@@ -381,9 +381,9 @@ jobs:
             echo "Running pre-release validation tests..."
             
             # Test syntax one more time
-            python -m py_compile ddmcp/server.py
-            python -m py_compile ddmcp/tools/*.py
-            python -m py_compile ddmcp/utils/*.py
+            python -m py_compile datadog_mcp/server.py
+            python -m py_compile datadog_mcp/tools/*.py
+            python -m py_compile datadog_mcp/utils/*.py
             
             # Test package installation from built wheel
             WHEEL_FILE=$(ls dist/*.whl | head -1)
@@ -520,8 +520,43 @@ jobs:
             
             echo "✅ Auto-release confirmed for version: $AUTO_RELEASE_VERSION"
             echo "export CLEAN_VERSION=$AUTO_RELEASE_VERSION" >> $BASH_ENV
-      - validate_changelog:
-          version: $AUTO_RELEASE_VERSION
+      - run:
+          name: Validate changelog for auto-release version
+          command: |
+            echo "Validating changelog for version: $AUTO_RELEASE_VERSION"
+            # Use the validate_changelog logic inline since we can't pass variable to command parameter
+            VERSION="$AUTO_RELEASE_VERSION"
+            VERSION=${VERSION#v}
+            
+            echo "Checking CHANGELOG.md for version: $VERSION"
+            
+            if [ ! -f CHANGELOG.md ]; then
+              echo "❌ CHANGELOG.md not found"
+              exit 1
+            fi
+            
+            CHANGELOG_PATTERNS=(
+              "## \[v$VERSION\]"
+              "## \[$VERSION\]"
+              "## v$VERSION"
+              "## $VERSION"
+            )
+            
+            VERSION_FOUND=false
+            for pattern in "${CHANGELOG_PATTERNS[@]}"; do
+              if grep -q "$pattern" CHANGELOG.md; then
+                VERSION_FOUND=true
+                echo "✅ Found changelog entry matching: $pattern"
+                break
+              fi
+            done
+            
+            if [ "$VERSION_FOUND" = false ]; then
+              echo "❌ No changelog entry found for version $VERSION"
+              exit 1
+            fi
+            
+            echo "✅ Changelog validation passed"
       - setup_dependencies
       - run:
           name: Update version in pyproject.toml
@@ -556,9 +591,9 @@ jobs:
             echo "🧪 Running pre-release validation tests..."
             
             # Test syntax one more time
-            python -m py_compile ddmcp/server.py
-            python -m py_compile ddmcp/tools/*.py
-            python -m py_compile ddmcp/utils/*.py
+            python -m py_compile datadog_mcp/server.py
+            python -m py_compile datadog_mcp/tools/*.py
+            python -m py_compile datadog_mcp/utils/*.py
             
             # Test package installation from built wheel
             WHEEL_FILE=$(ls dist/*.whl | head -1)

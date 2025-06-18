@@ -1,0 +1,68 @@
+{
+  "mcpServers": {
+    "datadog-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "--rm",
+        "-i",
+        "--env-file",
+        ".env",
+        "magistersart/datadog-mcp:latest"
+      ]
+    },
+    "circleci-mcp-server": {
+      "command": "npx",
+      "args": ["-y", "@circleci/mcp-server-circleci"]
+    },
+    "opslevel-mcp": {
+    "command": "docker",
+        "args": [
+          "run",
+          "-i",
+          "--rm",
+          "--env-file",
+          ".env",
+          "public.ecr.aws/opslevel/mcp:latest"
+        ]
+      },
+    "awslabs.aws-documentation-mcp-server": {
+      "command": "uvx",
+      "args": ["awslabs.aws-documentation-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR",
+        "AWS_DOCUMENTATION_PARTITION": "aws"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "awslabs.code-doc-gen-mcp-server": {
+      "command": "uvx",
+      "args": ["awslabs.code-doc-gen-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "awslabs.cost-explorer-mcp-server": {
+      "command": "uvx",
+      "args": ["awslabs.cost-explorer-mcp-server@latest"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR",
+        "AWS_PROFILE": "prod-us"
+      },
+      "disabled": false,
+      "autoApprove": []
+    },
+    "awslabs.aws-diagram-mcp-server": {
+      "command": "uvx",
+      "args": ["awslabs.aws-diagram-mcp-server"],
+      "env": {
+        "FASTMCP_LOG_LEVEL": "ERROR"
+      },
+      "autoApprove": [],
+      "disabled": false
+    }
+  }
+}

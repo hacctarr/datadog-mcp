@@ -6,21 +6,21 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Building and Running
 - `uv sync` - Install dependencies using UV package manager
-- `python server.py` - Run the MCP server locally
+- `uv run datadog_mcp/server.py` - Run the MCP server locally
 - `docker build -t datadog-mcp .` - Build Docker image
 - `docker-compose up` - Run with Docker Compose (requires DD_API_KEY and DD_APP_KEY env vars)
 
 ### Testing
-- `python tests/test_server.py` - Test core server functionality
-- `python tests/test_logs.py` - Test log retrieval features
-- `python tests/test_metrics.py` - Test metrics collection
-- `python tests/test_teams.py` - Test team management features
-- Tests require valid DD_API_KEY and DD_APP_KEY environment variables
+- `uv run pytest tests/test_integration.py` - Test core server functionality (no API required)
+- `uv run pytest tests/test_tools_working.py` - Test tool functionality (no API required) 
+- `uv run pytest tests/` - Run all tests
+- Most tests use mocking and don't require real Datadog API credentials
+- For integration tests with real API, set DD_API_KEY and DD_APP_KEY environment variables
 
 ### Syntax Checking
-- `python -m py_compile server.py` - Check main server syntax
-- `python -m py_compile tools/*.py` - Check all tool implementations
-- `python -m py_compile utils/*.py` - Check utility modules
+- `uv run python -m py_compile datadog_mcp/server.py` - Check main server syntax
+- `uv run python -m py_compile datadog_mcp/tools/*.py` - Check all tool implementations
+- `uv run python -m py_compile datadog_mcp/utils/*.py` - Check utility modules
 
 ## Architecture Overview
 
@@ -28,18 +28,18 @@ This is a **Model Context Protocol (MCP) server** that provides Datadog monitori
 
 ### Core Components
 
-**`server.py`** - Main MCP server orchestrator that:
+**`datadog_mcp/server.py`** - Main MCP server orchestrator that:
 - Registers all available tools in the TOOLS dictionary
 - Routes tool calls to appropriate handlers
 - Manages async server lifecycle using stdio transport
 - Handles authentication via environment variables
 
-**`tools/`** - Individual MCP tool implementations, each with:
+**`datadog_mcp/tools/`** - Individual MCP tool implementations, each with:
 - `get_tool_definition()` - Returns MCP Tool schema with input validation
 - `handle_call()` - Processes requests and returns formatted responses
 - Consistent error handling and parameter validation patterns
 
-**`utils/datadog_client.py`** - Centralized Datadog API client that:
+**`datadog_mcp/utils/datadog_client.py`** - Centralized Datadog API client that:
 - Manages authentication headers (DD_API_KEY, DD_APP_KEY)
 - Implements all API endpoints (pipelines, logs, metrics, teams)
 - Handles multiple environments via array parameters
@@ -47,7 +47,7 @@ This is a **Model Context Protocol (MCP) server** that provides Datadog monitori
 - Uses proper Datadog API endpoints (e.g., `/api/v2/metrics/{metric_name}/all-tags` for field discovery)
 - Constructs metric queries in Datadog format: `aggregation:metric{filters} by {fields}`
 
-**`utils/formatters.py`** - Data transformation layer providing:
+**`datadog_mcp/utils/formatters.py`** - Data transformation layer providing:
 - Multiple output formats (table, JSON, summary, timeseries)
 - Statistical analysis for metrics
 - Consistent data presentation across tools
