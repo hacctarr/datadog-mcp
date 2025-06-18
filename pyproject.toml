@@ -1,6 +1,6 @@
 [project]
-name = "ddmcp"
-version = "0.0.4"
+name = "datadog-mcp"
+version = "0.1.0"
 description = "Datadog MCP server"
 readme = "README.md"
 requires-python = ">=3.13"
@@ -14,4 +14,4 @@ dependencies = [
 ]
 
 [project.scripts]
-ddmcp = "ddmcp.server:cli_main"
+datadog-mcp = "ddmcp.server:cli_main"

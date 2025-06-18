@@ -16,63 +16,48 @@ This MCP server enables Claude to:
 
 Choose your preferred method to run the Datadog MCP server:
 
-### 🚀 Docker Hub (Recommended - Fastest)
-```bash
-docker run -e DD_API_KEY="your-datadog-api-key" -e DD_APP_KEY="your-datadog-application-key" -i magistersart/datadog-mcp:latest
-```
-
-### ⚡ GitHub Direct (Latest Code)
-```bash
-docker run -e DD_API_KEY="your-datadog-api-key" -e DD_APP_KEY="your-datadog-application-key" -i $(docker build -q https://github.com/magistersart/dd-mcp.git)
-```
-
-### 🛠️ UVX Direct Run (Python - Recommended for CLI)
+### 🚀 UVX Direct Run (Recommended)
 ```bash
 export DD_API_KEY="your-datadog-api-key" DD_APP_KEY="your-datadog-application-key"
 
 # Latest version (HEAD)
-uvx --from git+https://github.com/shelfio/datadog-mcp.git ddmcp
+uvx --from git+https://github.com/shelfio/datadog-mcp.git datadog-mcp
 
 # Specific version (recommended for production)
-uvx --from git+https://github.com/shelfio/datadog-mcp.git@v0.0.3 ddmcp
+uvx --from git+https://github.com/shelfio/datadog-mcp.git@v0.0.3 datadog-mcp
 
 # Specific branch
-uvx --from git+https://github.com/shelfio/datadog-mcp.git@main ddmcp
+uvx --from git+https://github.com/shelfio/datadog-mcp.git@main datadog-mcp
 ```
 
-### 🔧 UV Quick Run (Python)
+### 🔧 UV Quick Run (Development)
 ```bash
 export DD_API_KEY="your-datadog-api-key" DD_APP_KEY="your-datadog-application-key"
-git clone https://github.com/shelfio/datadog-mcp.git /tmp/dd-mcp && cd /tmp/dd-mcp && uv run ddmcp/server.py
+git clone https://github.com/shelfio/datadog-mcp.git /tmp/datadog-mcp && cd /tmp/datadog-mcp && uv run ddmcp/server.py
 ```
 
-### 📦 Docker Compose
+### 🐳 Docker (Optional)
 ```bash
-git clone https://github.com/magistersart/dd-mcp.git && cd dd-mcp
-echo "DD_API_KEY=your-datadog-api-key" > .env
-echo "DD_APP_KEY=your-datadog-application-key" >> .env
-docker-compose up
+docker run -e DD_API_KEY="your-datadog-api-key" -e DD_APP_KEY="your-datadog-application-key" -i $(docker build -q https://github.com/shelfio/datadog-mcp.git)
 ```
 
 **Method Comparison:**
 
-| Method | Speed | Latest Code | Multiarch | Disk Usage | Best For |
-|--------|-------|-------------|-----------|------------|----------|
-| 🚀 Docker Hub | ⚡⚡⚡ | ✅ (tagged) | ✅ | Minimal | Production, Quick Setup |
-| ⚡ GitHub Direct | ⚡⚡ | ✅ (bleeding edge) | ❌ | Minimal | Testing Latest Changes |
-| 🛠️ UVX Direct Run | ⚡⚡ | ✅ (bleeding edge) | ✅ | Minimal | CLI Usage, No Clone Needed |
-| 🔧 UV Quick Run | ⚡ | ✅ (bleeding edge) | ✅ | Minimal | Python Development |
-| 📦 Docker Compose | ⚡⚡ | ✅ (bleeding edge) | ❌ | Medium | Development, Orchestration |
+| Method | Speed | Latest Code | Setup | Best For |
+|--------|-------|-------------|-------|----------|
+| 🚀 UVX Direct Run | ⚡⚡⚡ | ✅ (versioned) | Minimal | Production, Claude Desktop |
+| 🔧 UV Quick Run | ⚡⚡ | ✅ (bleeding edge) | Clone Required | Development, Testing |
+| 🐳 Docker | ⚡ | ✅ (bleeding edge) | Docker Required | Containerized Environments |
 
 ## Requirements
 
-### For Docker Methods
-- Docker (and Docker Compose for compose method)
+### For UVX/UV Methods  
+- Python 3.13+
+- UV package manager (includes uvx)
 - Datadog API Key and Application Key
 
-### For UVX/UV/Python Methods  
-- Python 3.13+
-- UV package manager (with uvx for direct runs)
+### For Docker Method
+- Docker
 - Datadog API Key and Application Key
 
 ## Version Management
@@ -94,27 +79,7 @@ See [GitHub releases](https://github.com/shelfio/datadog-mcp/releases) for all a
 
 ## Claude Desktop Integration
 
-### Using Docker Hub Image (Recommended)
-
-First, create an .env file with your Datadog credentials:
-```bash
-echo "DD_API_KEY=your-datadog-api-key" > .env
-echo "DD_APP_KEY=your-datadog-application-key" >> .env
-```
-
-Then add to Claude Desktop configuration:
-```json
-{
-  "mcpServers": {
-    "datadog": {
-      "command": "docker",
-      "args": ["run", "-i", "--env-file", ".env", "magistersart/datadog-mcp:latest"]
-    }
-  }
-}
-```
-
-### Using UVX (Recommended for Local Installation)
+### Using UVX (Recommended)
 
 Add to Claude Desktop configuration:
 
@@ -124,7 +89,7 @@ Add to Claude Desktop configuration:
   "mcpServers": {
     "datadog": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/shelfio/datadog-mcp.git", "ddmcp"],
+      "args": ["--from", "git+https://github.com/shelfio/datadog-mcp.git", "datadog-mcp"],
       "env": {
         "DD_API_KEY": "your-datadog-api-key",
         "DD_APP_KEY": "your-datadog-application-key"
@@ -140,7 +105,7 @@ Add to Claude Desktop configuration:
   "mcpServers": {
     "datadog": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/shelfio/datadog-mcp.git@v0.0.3", "ddmcp"],
+      "args": ["--from", "git+https://github.com/shelfio/datadog-mcp.git@v0.0.3", "datadog-mcp"],
       "env": {
         "DD_API_KEY": "your-datadog-api-key",
         "DD_APP_KEY": "your-datadog-application-key"
@@ -150,114 +115,51 @@ Add to Claude Desktop configuration:
 }
 ```
 
-### Using Local Git Clone
+### Using Local Development Setup
 
-First, clone and set your environment variables:
+For development with local cloned repository:
 ```bash
 git clone https://github.com/shelfio/datadog-mcp.git
-export DD_API_KEY="your-datadog-api-key"
-export DD_APP_KEY="your-datadog-application-key"
+cd datadog-mcp
 ```
 
-Then add to Claude Desktop configuration:
+Add to Claude Desktop configuration:
 ```json
 {
   "mcpServers": {
     "datadog": {
-      "command": "python",
-      "args": ["/path/to/datadog-mcp/ddmcp/server.py"],
+      "command": "uv",
+      "args": ["run", "ddmcp/server.py"],
+      "cwd": "/path/to/datadog-mcp",
       "env": {
-        "DD_API_KEY": "${DD_API_KEY}",
-        "DD_APP_KEY": "${DD_APP_KEY}"
+        "DD_API_KEY": "your-datadog-api-key",
+        "DD_APP_KEY": "your-datadog-application-key"
       }
     }
   }
 }
 ```
 
-## Detailed Installation Options
+## Installation Options
 
-### Docker Installation
+### UVX Installation (Recommended)
 
-#### Option 1: Use Pre-built Image from Docker Hub
-
-```bash
-docker run -e DD_API_KEY="your-datadog-api-key" -e DD_APP_KEY="your-datadog-application-key" -i magistersart/datadog-mcp:latest
-```
-
-**Supported Architectures:** The Docker image supports both AMD64 and ARM64 architectures, automatically selecting the correct one for your platform.
-
-#### Option 2: Run Directly from GitHub
-
-Build and run directly from the GitHub repository without cloning:
-
-```bash
-docker run -e DD_API_KEY="your-datadog-api-key" -e DD_APP_KEY="your-datadog-application-key" -i $(docker build -q https://github.com/magistersart/dd-mcp.git)
-```
-
-Or use Docker Buildx for multiarch support:
-
-```bash
-docker buildx build --platform linux/amd64,linux/arm64 -t my-datadog-mcp https://github.com/magistersart/dd-mcp.git --load
-docker run -e DD_API_KEY="your-datadog-api-key" -e DD_APP_KEY="your-datadog-application-key" -i my-datadog-mcp
-```
-
-#### Option 3: Build from Source
-
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/magistersart/dd-mcp.git
-   cd dd-mcp
-   ```
-
-2. **Build and run with Docker Compose:**
-   ```bash
-   export DD_API_KEY="your-datadog-api-key"
-   export DD_APP_KEY="your-datadog-application-key"
-   docker-compose up --build
-   ```
-
-3. **Or build and run with Docker:**
-   ```bash
-   docker build -t datadog-mcp .
-   docker run -e DD_API_KEY="your-datadog-api-key" -e DD_APP_KEY="your-datadog-application-key" -i datadog-mcp
-   ```
-
-### Manual Installation
-
-#### Quick Start with UVX (Recommended)
-
-If you have UV installed, you can run directly from GitHub without cloning:
+Install and run directly from GitHub without cloning:
 
 ```bash
 export DD_API_KEY="your-datadog-api-key"
 export DD_APP_KEY="your-datadog-application-key"
 
-# Latest version (bleeding edge)
-uvx --from git+https://github.com/shelfio/datadog-mcp.git ddmcp
+# Latest version
+uvx --from git+https://github.com/shelfio/datadog-mcp.git datadog-mcp
 
 # Specific version (recommended for production)
-uvx --from git+https://github.com/shelfio/datadog-mcp.git@v0.0.3 ddmcp
-
-# Specific commit hash
-uvx --from git+https://github.com/shelfio/datadog-mcp.git@59f0c15 ddmcp
+uvx --from git+https://github.com/shelfio/datadog-mcp.git@v0.0.3 datadog-mcp
 ```
 
-**Available versions**: You can see all available versions in the [GitHub releases](https://github.com/shelfio/datadog-mcp/releases) or tags.
+### Development Installation
 
-#### Quick Start with UV
-
-You can also clone and run with UV:
-
-```bash
-export DD_API_KEY="your-datadog-api-key"
-export DD_APP_KEY="your-datadog-application-key"
-
-# Clone and run in one command
-git clone https://github.com/shelfio/datadog-mcp.git /tmp/dd-mcp && cd /tmp/dd-mcp && uv run ddmcp/server.py
-```
-
-#### Traditional Installation
+For local development and testing:
 
 1. **Clone the repository:**
    ```bash
@@ -270,16 +172,20 @@ git clone https://github.com/shelfio/datadog-mcp.git /tmp/dd-mcp && cd /tmp/dd-m
    uv sync
    ```
 
-3. **Set environment variables:**
+3. **Run the server:**
    ```bash
    export DD_API_KEY="your-datadog-api-key"
    export DD_APP_KEY="your-datadog-application-key"
+   uv run ddmcp/server.py
    ```
 
-4. **Run the server:**
-   ```bash
-   python ddmcp/server.py
-   ```
+### Docker Installation (Optional)
+
+For containerized environments:
+
+```bash
+docker run -e DD_API_KEY="your-key" -e DD_APP_KEY="your-app-key" -i $(docker build -q https://github.com/shelfio/datadog-mcp.git)
+```
 
 ## Tools
 
