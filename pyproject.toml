@@ -12,3 +12,6 @@ dependencies = [
     "mcp>=1.9.4",
     "typing>=3.10.0.0",
 ]
+
+[project.scripts]
+ddmcp = "ddmcp.server:cli_main"

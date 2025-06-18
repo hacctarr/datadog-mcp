@@ -14,7 +14,7 @@ from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
 from mcp.types import CallToolRequest, CallToolResult, Tool, ServerCapabilities, TextContent
 
-from tools import get_fingerprints, list_pipelines, get_logs, get_teams, get_metrics, get_metric_fields, get_metric_field_values, list_metrics, list_service_definitions, get_service_definition
+from .tools import get_fingerprints, list_pipelines, get_logs, get_teams, get_metrics, get_metric_fields, get_metric_field_values, list_metrics, list_service_definitions, get_service_definition
 
 # Configure logging
 logging.basicConfig(
@@ -105,8 +105,8 @@ async def handle_call_tool(name: str, arguments: dict):
         return [TextContent(type="text", text=f"Error: {str(e)}")]
 
 
-async def main():
-    """Main entry point."""
+async def async_main():
+    """Async main entry point."""
     try:
         logger.info("Starting Datadog MCP Server...")
         # Run the server using stdio transport
@@ -128,5 +128,10 @@ async def main():
         raise
 
 
+def cli_main():
+    """Main entry point for console scripts."""
+    asyncio.run(async_main())
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    cli_main()

@@ -7,8 +7,8 @@ from typing import Any, Dict
 
 from mcp.types import CallToolRequest, CallToolResult, Tool, TextContent
 
-from utils.datadog_client import fetch_ci_pipelines
-from utils.formatters import extract_pipeline_info, format_as_table
+from ..utils.datadog_client import fetch_ci_pipelines
+from ..utils.formatters import extract_pipeline_info, format_as_table
 
 
 def get_tool_definition() -> Tool:

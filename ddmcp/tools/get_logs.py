@@ -10,8 +10,8 @@ from mcp.types import CallToolRequest, CallToolResult, Tool, TextContent
 
 logger = logging.getLogger(__name__)
 
-from utils.datadog_client import fetch_logs
-from utils.formatters import extract_log_info, format_logs_as_table, format_logs_as_text
+from ..utils.datadog_client import fetch_logs
+from ..utils.formatters import extract_log_info, format_logs_as_table, format_logs_as_text
 
 
 def get_tool_definition() -> Tool:

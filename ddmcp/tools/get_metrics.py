@@ -10,8 +10,8 @@ from mcp.types import CallToolRequest, CallToolResult, Tool, TextContent
 
 logger = logging.getLogger(__name__)
 
-from utils.datadog_client import fetch_metrics
-from utils.formatters import (
+from ..utils.datadog_client import fetch_metrics
+from ..utils.formatters import (
     format_metrics_summary,
     format_metrics_table,
     format_metrics_timeseries,

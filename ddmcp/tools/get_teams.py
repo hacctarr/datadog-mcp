@@ -7,8 +7,8 @@ from typing import Any, Dict, List
 
 from mcp.types import CallToolRequest, CallToolResult, Tool, TextContent
 
-from utils.datadog_client import fetch_teams, fetch_team_memberships
-from utils.formatters import (
+from ..utils.datadog_client import fetch_teams, fetch_team_memberships
+from ..utils.formatters import (
     extract_team_info,
     extract_membership_info,
     format_teams_as_table,
