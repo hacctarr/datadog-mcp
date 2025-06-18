@@ -425,7 +425,7 @@ jobs:
             # Configure git with GitHub token authentication
             git config user.email "ci@circleci.com"
             git config user.name "CircleCI Release Bot"
-            git remote set-url origin "https://x-access-token:${GH_API_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git"
+            git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git"
             
             # Create tag with v prefix
             TAG_NAME="v$CLEAN_VERSION"
@@ -636,7 +636,7 @@ jobs:
             # Configure git with GitHub token authentication
             git config user.email "ci@circleci.com"
             git config user.name "CircleCI Auto-Release Bot"
-            git remote set-url origin "https://x-access-token:${GH_API_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git"
+            git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}.git"
             
             # Create tag with v prefix
             TAG_NAME="v$CLEAN_VERSION"
@@ -844,7 +844,6 @@ workflows:
             - documentation_check
             - test_suite
       - auto_release:
-          context: github
           filters:
             branches:
               only: main
@@ -856,7 +855,6 @@ workflows:
     when: << pipeline.parameters.run_release >>
     jobs:
       - release:
-          context: github
           release_version: << pipeline.parameters.release_version >>
           filters:
             branches:
