@@ -26,7 +26,6 @@ ENV/
 Thumbs.db
 
 # Documentation
-README.md
 docs/
 
 # Tests (optional - uncomment if you don't want tests in container)

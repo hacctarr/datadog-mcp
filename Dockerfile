@@ -14,10 +14,8 @@ RUN curl -LsSf https://astral.sh/uv/install.sh | sh
 ENV PATH="/root/.local/bin:$PATH"
 
 # Copy project files
-COPY pyproject.toml uv.lock ./
-COPY tools/ tools/
-COPY utils/ utils/
-COPY server.py ./
+COPY pyproject.toml uv.lock README.md ./
+COPY datadog_mcp/ datadog_mcp/
 
 # Install dependencies
 RUN uv sync
@@ -30,4 +28,4 @@ ENV DD_APP_KEY=""
 EXPOSE 8080
 
 # Run the MCP server
-CMD ["uv", "run", "python", "server.py"]
+CMD ["uv", "run", "python", "datadog_mcp/server.py"]
