@@ -1,5 +1,7 @@
 # Datadog MCP Server
 
+[![CircleCI](https://circleci.com/gh/shelfio/datadog-mcp/tree/main.svg?style=svg)](https://circleci.com/gh/shelfio/datadog-mcp/tree/main)
+
 A Model Context Protocol (MCP) server that provides comprehensive Datadog monitoring capabilities through Claude Desktop and other MCP clients.
 
 ## Features
