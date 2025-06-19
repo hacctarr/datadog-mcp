@@ -1,9 +1,9 @@
 # Datadog MCP Server
 
-[![CircleCI](https://circleci.com/gh/shelfio/datadog-mcp/tree/main.svg?style=svg)](https://circleci.com/gh/shelfio/datadog-mcp/tree/main)
+[![CircleCI](https://img.shields.io/circleci/build/github/shelfio/datadog-mcp/main?style=flat&logo=circleci)](https://circleci.com/gh/shelfio/datadog-mcp/tree/main)
 [![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://python.org)
 [![UV](https://img.shields.io/badge/uv-package%20manager-blue)](https://github.com/astral-sh/uv)
-[![Docker](https://img.shields.io/badge/docker-supported-blue)](https://hub.docker.com)
+[![Podman](https://img.shields.io/badge/podman-892CA0?style=flat&logo=podman&logoColor=white)](https://podman.io)
 [![GitHub release](https://img.shields.io/github/v/release/shelfio/datadog-mcp)](https://github.com/shelfio/datadog-mcp/releases)
 
 A Model Context Protocol (MCP) server that provides comprehensive Datadog monitoring capabilities through Claude Desktop and other MCP clients.
