@@ -15,6 +15,7 @@ This MCP server enables Claude to:
 - **CI/CD Pipeline Management**: List CI pipelines, extract fingerprints
 - **Service Logs Analysis**: Retrieve and analyze service logs with environment and time filtering  
 - **Metrics Monitoring**: Query any Datadog metric with flexible filtering, aggregation, and field discovery
+- **Monitoring & Alerting**: List and manage Datadog monitors and Service Level Objectives (SLOs)
 - **Service Definitions**: List and retrieve detailed service definitions with metadata, ownership, and configuration
 - **Team Management**: List teams, view member details, and manage team information
 
@@ -30,7 +31,7 @@ export DD_API_KEY="your-datadog-api-key" DD_APP_KEY="your-datadog-application-ke
 uvx --from git+https://github.com/shelfio/datadog-mcp.git datadog-mcp
 
 # Specific version (recommended for production)
-uvx --from git+https://github.com/shelfio/datadog-mcp.git@v0.0.3 datadog-mcp
+uvx --from git+https://github.com/shelfio/datadog-mcp.git@v0.0.5 datadog-mcp
 
 # Specific branch
 uvx --from git+https://github.com/shelfio/datadog-mcp.git@main datadog-mcp
@@ -42,9 +43,9 @@ export DD_API_KEY="your-datadog-api-key" DD_APP_KEY="your-datadog-application-ke
 git clone https://github.com/shelfio/datadog-mcp.git /tmp/datadog-mcp && cd /tmp/datadog-mcp && uv run ddmcp/server.py
 ```
 
-### 🐳 Docker (Optional)
+### 🐳 Podman (Optional)
 ```bash
-docker run -e DD_API_KEY="your-datadog-api-key" -e DD_APP_KEY="your-datadog-application-key" -i $(docker build -q https://github.com/shelfio/datadog-mcp.git)
+podman run -e DD_API_KEY="your-datadog-api-key" -e DD_APP_KEY="your-datadog-application-key" -i $(podman build -q https://github.com/shelfio/datadog-mcp.git)
 ```
 
 **Method Comparison:**
@@ -53,7 +54,7 @@ docker run -e DD_API_KEY="your-datadog-api-key" -e DD_APP_KEY="your-datadog-appl
 |--------|-------|-------------|-------|----------|
 | 🚀 UVX Direct Run | ⚡⚡⚡ | ✅ (versioned) | Minimal | Production, Claude Desktop |
 | 🔧 UV Quick Run | ⚡⚡ | ✅ (bleeding edge) | Clone Required | Development, Testing |
-| 🐳 Docker | ⚡ | ✅ (bleeding edge) | Docker Required | Containerized Environments |
+| 🐳 Podman | ⚡ | ✅ (bleeding edge) | Podman Required | Containerized Environments |
 
 ## Requirements
 
@@ -62,8 +63,8 @@ docker run -e DD_API_KEY="your-datadog-api-key" -e DD_APP_KEY="your-datadog-appl
 - UV package manager (includes uvx)
 - Datadog API Key and Application Key
 
-### For Docker Method
-- Docker
+### For Podman Method
+- Podman
 - Datadog API Key and Application Key
 
 ## Version Management
@@ -72,12 +73,12 @@ When using UVX, you can specify exact versions for reproducible deployments:
 
 ### Version Formats
 - **Latest**: `git+https://github.com/shelfio/datadog-mcp.git` (HEAD)
-- **Specific Tag**: `git+https://github.com/shelfio/datadog-mcp.git@v0.0.3`
+- **Specific Tag**: `git+https://github.com/shelfio/datadog-mcp.git@v0.0.5`
 - **Branch**: `git+https://github.com/shelfio/datadog-mcp.git@main`
 - **Commit Hash**: `git+https://github.com/shelfio/datadog-mcp.git@59f0c15`
 
 ### Recommendations
-- **Production**: Use specific tags (e.g., `@v0.0.3`) for stability
+- **Production**: Use specific tags (e.g., `@v0.0.5`) for stability
 - **Development**: Use latest or specific branch for newest features
 - **Testing**: Use commit hashes for exact reproducibility
 
@@ -111,7 +112,7 @@ Add to Claude Desktop configuration:
   "mcpServers": {
     "datadog": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/shelfio/datadog-mcp.git@v0.0.3", "datadog-mcp"],
+      "args": ["--from", "git+https://github.com/shelfio/datadog-mcp.git@v0.0.5", "datadog-mcp"],
       "env": {
         "DD_API_KEY": "your-datadog-api-key",
         "DD_APP_KEY": "your-datadog-application-key"
@@ -160,7 +161,7 @@ export DD_APP_KEY="your-datadog-application-key"
 uvx --from git+https://github.com/shelfio/datadog-mcp.git datadog-mcp
 
 # Specific version (recommended for production)
-uvx --from git+https://github.com/shelfio/datadog-mcp.git@v0.0.3 datadog-mcp
+uvx --from git+https://github.com/shelfio/datadog-mcp.git@v0.0.5 datadog-mcp
 ```
 
 ### Development Installation
@@ -185,12 +186,12 @@ For local development and testing:
    uv run ddmcp/server.py
    ```
 
-### Docker Installation (Optional)
+### Podman Installation (Optional)
 
 For containerized environments:
 
 ```bash
-docker run -e DD_API_KEY="your-key" -e DD_APP_KEY="your-app-key" -i $(docker build -q https://github.com/shelfio/datadog-mcp.git)
+podman run -e DD_API_KEY="your-key" -e DD_APP_KEY="your-app-key" -i $(podman build -q https://github.com/shelfio/datadog-mcp.git)
 ```
 
 ## Tools
@@ -273,6 +274,27 @@ Retrieves service logs with comprehensive filtering capabilities.
 - `log_level` (optional): "INFO", "ERROR", "WARN", "DEBUG"
 - `format` (optional): "table", "text", "json", "summary"
 
+### `list_monitors`
+Lists all Datadog monitors with comprehensive filtering options.
+
+**Arguments:**
+- `name` (optional): Filter monitors by name (substring match)
+- `tags` (optional): Filter monitors by tags (e.g., 'env:prod,service:web')
+- `monitor_tags` (optional): Filter monitors by monitor tags (e.g., 'team:backend')
+- `page_size` (optional): Number of monitors per page (default: 50, max: 1000)
+- `page` (optional): Page number (0-indexed, default: 0)
+- `format` (optional): Output format - "table", "json", or "summary"
+
+### `list_slos`
+Lists Service Level Objectives (SLOs) from Datadog with filtering capabilities.
+
+**Arguments:**
+- `query` (optional): Filter SLOs by name or description (substring match)
+- `tags` (optional): Filter SLOs by tags (e.g., 'team:backend,env:prod')
+- `limit` (optional): Maximum number of SLOs to return (default: 50, max: 1000)
+- `offset` (optional): Number of SLOs to skip (default: 0)
+- `format` (optional): Output format - "table", "json", or "summary"
+
 ### `get_teams`
 Lists teams and their members.
 
@@ -301,6 +323,10 @@ Ask Claude to help you with:
 "Get the definition for the user-api service"
 
 "List all teams and their members"
+
+"Show all monitors for the web service"
+
+"List SLOs with less than 99% uptime"
 
 "Extract pipeline fingerprints for Terraform configuration"
 ```

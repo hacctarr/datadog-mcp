@@ -26,8 +26,9 @@ async def fetch_ci_pipelines(
     repository: Optional[str] = None,
     pipeline_name: Optional[str] = None,
     days_back: int = 90,
-    limit: int = 1000,
-) -> List[Dict[str, Any]]:
+    limit: int = 100,
+    cursor: Optional[str] = None,
+) -> Dict[str, Any]:
     """Fetch CI pipelines from Datadog API."""
     url = f"{DATADOG_API_URL}/api/v2/ci/pipelines/events/search"
     
@@ -55,11 +56,14 @@ async def fetch_ci_pipelines(
         "page": {"limit": limit},
     }
     
+    if cursor:
+        payload["page"]["cursor"] = cursor
+    
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(url, headers=headers, json=payload)
             response.raise_for_status()
-            return response.json().get("data", [])
+            return response.json()
         except httpx.HTTPError as e:
             logger.error(f"HTTP error fetching pipelines: {e}")
             raise
@@ -72,8 +76,9 @@ async def fetch_logs(
     time_range: str = "1h",
     filters: Optional[Dict[str, str]] = None,
     query: Optional[str] = None,
-    limit: int = 100,
-) -> List[Dict[str, Any]]:
+    limit: int = 50,
+    cursor: Optional[str] = None,
+) -> Dict[str, Any]:
     """Fetch logs from Datadog API with flexible filtering."""
     url = f"{DATADOG_API_URL}/api/v2/logs/events/search"
     
@@ -107,11 +112,14 @@ async def fetch_logs(
         "sort": "-timestamp",  # Most recent first
     }
     
+    if cursor:
+        payload["page"]["cursor"] = cursor
+    
     async with httpx.AsyncClient() as client:
         try:
             response = await client.post(url, headers=headers, json=payload)
             response.raise_for_status()
-            return response.json().get("data", [])
+            return response.json()
         except httpx.HTTPError as e:
             logger.error(f"HTTP error fetching logs: {e}")
             raise
@@ -127,7 +135,7 @@ async def fetch_service_logs(
     environment: Optional[List[str]] = None,
     log_level: Optional[str] = None,
     query: Optional[str] = None,
-    limit: int = 100,
+    limit: int = 50,
 ) -> List[Dict[str, Any]]:
     """Backward compatibility wrapper for fetch_logs."""
     filters = {}
@@ -147,7 +155,10 @@ async def fetch_service_logs(
     )
 
 
-async def fetch_teams() -> List[Dict[str, Any]]:
+async def fetch_teams(
+    page_size: int = 50,
+    page_number: int = 0,
+) -> Dict[str, Any]:
     """Fetch teams from Datadog API."""
     url = f"{DATADOG_API_URL}/api/v2/team"
     
@@ -157,11 +168,17 @@ async def fetch_teams() -> List[Dict[str, Any]]:
         "DD-APPLICATION-KEY": DATADOG_APP_KEY,
     }
     
+    # Add pagination parameters
+    params = {
+        "page[size]": page_size,
+        "page[number]": page_number,
+    }
+    
     async with httpx.AsyncClient() as client:
         try:
-            response = await client.get(url, headers=headers)
+            response = await client.get(url, headers=headers, params=params)
             response.raise_for_status()
-            return response.json().get("data", [])
+            return response.json()
         except httpx.HTTPError as e:
             logger.error(f"HTTP error fetching teams: {e}")
             raise
@@ -274,7 +291,8 @@ async def fetch_metrics(
 
 async def fetch_metrics_list(
     filter_query: str = "",
-    limit: int = 100,
+    limit: int = 50,
+    cursor: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Fetch list of all available metrics from Datadog API."""
     
@@ -293,6 +311,9 @@ async def fetch_metrics_list(
     
     if filter_query:
         params["filter[tags]"] = filter_query
+    
+    if cursor:
+        params["page[cursor]"] = cursor
     
     async with httpx.AsyncClient() as client:
         try:
@@ -474,4 +495,152 @@ async def fetch_service_definition(
             raise
         except Exception as e:
             logger.error(f"Error fetching service definition for '{service_name}': {e}")
+            raise
+
+
+async def fetch_monitors(
+    tags: str = "",
+    name: str = "",
+    monitor_tags: str = "",
+    page_size: int = 50,
+    page: int = 0,
+) -> List[Dict[str, Any]]:
+    """Fetch monitors from Datadog API."""
+    
+    headers = {
+        "DD-API-KEY": DATADOG_API_KEY,
+        "DD-APPLICATION-KEY": DATADOG_APP_KEY,
+    }
+    
+    # Use the v1 monitors endpoint
+    url = f"{DATADOG_API_URL}/api/v1/monitor"
+    
+    # Build query parameters
+    params = {}
+    
+    if tags:
+        params["tags"] = tags
+    if name:
+        params["name"] = name
+    if monitor_tags:
+        params["monitor_tags"] = monitor_tags
+    
+    # Add pagination parameters
+    params["page_size"] = page_size
+    params["page"] = page
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            return response.json()
+            
+        except httpx.HTTPError as e:
+            logger.error(f"HTTP error fetching monitors: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error fetching monitors: {e}")
+            raise
+
+
+async def fetch_slos(
+    tags: Optional[str] = None,
+    query: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0,
+) -> List[Dict[str, Any]]:
+    """Fetch SLOs from Datadog API."""
+    url = f"{DATADOG_API_URL}/api/v1/slo"
+    
+    headers = {
+        "Content-Type": "application/json",
+        "DD-API-KEY": DATADOG_API_KEY,
+        "DD-APPLICATION-KEY": DATADOG_APP_KEY,
+    }
+    
+    params = {
+        "limit": limit,
+        "offset": offset,
+    }
+    
+    if tags:
+        params["tags_query"] = tags
+    if query:
+        params["query"] = query
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("data", [])
+            
+        except httpx.HTTPError as e:
+            logger.error(f"HTTP error fetching SLOs: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error fetching SLOs: {e}")
+            raise
+
+
+async def fetch_slo_details(slo_id: str) -> Dict[str, Any]:
+    """Fetch detailed information for a specific SLO."""
+    url = f"{DATADOG_API_URL}/api/v1/slo/{slo_id}"
+    
+    headers = {
+        "Content-Type": "application/json",
+        "DD-API-KEY": DATADOG_API_KEY,
+        "DD-APPLICATION-KEY": DATADOG_APP_KEY,
+    }
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, headers=headers)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("data", {})
+            
+        except httpx.HTTPError as e:
+            logger.error(f"HTTP error fetching SLO details: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error fetching SLO details: {e}")
+            raise
+
+
+async def fetch_slo_history(
+    slo_id: str,
+    from_ts: int,
+    to_ts: int,
+    target: Optional[float] = None,
+) -> Dict[str, Any]:
+    """Fetch SLO history data."""
+    url = f"{DATADOG_API_URL}/api/v1/slo/{slo_id}/history"
+    
+    headers = {
+        "Content-Type": "application/json",
+        "DD-API-KEY": DATADOG_API_KEY,
+        "DD-APPLICATION-KEY": DATADOG_APP_KEY,
+    }
+    
+    params = {
+        "from_ts": from_ts,
+        "to_ts": to_ts,
+    }
+    
+    if target is not None:
+        params["target"] = target
+    
+    async with httpx.AsyncClient() as client:
+        try:
+            response = await client.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            data = response.json()
+            return data.get("data", {})
+            
+        except httpx.HTTPError as e:
+            logger.error(f"HTTP error fetching SLO history: {e}")
+            raise
+        except Exception as e:
+            logger.error(f"Error fetching SLO history: {e}")
             raise

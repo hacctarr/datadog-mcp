@@ -7,8 +7,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ### Building and Running
 - `uv sync` - Install dependencies using UV package manager
 - `uv run datadog_mcp/server.py` - Run the MCP server locally
-- `docker build -t datadog-mcp .` - Build Docker image
-- `docker-compose up` - Run with Docker Compose (requires DD_API_KEY and DD_APP_KEY env vars)
+- `podman build -t datadog-mcp .` - Build Podman image
+- `podman-compose up` - Run with Podman Compose (requires DD_API_KEY and DD_APP_KEY env vars)
 
 ### Testing
 - `uv run pytest tests/test_integration.py` - Test core server functionality (no API required)
@@ -152,8 +152,8 @@ if aggregation_by and aggregation_by != ["service"]:
 - UV package manager for dependency management
 - Async/await support throughout codebase
 
-### Docker Integration
-The Docker setup uses multi-stage builds with:
+### Podman Integration
+The Podman setup uses multi-stage builds with:
 - Python 3.13-slim base image
 - UV package manager installation
 - Multi-architecture support (AMD64/ARM64)
@@ -169,11 +169,29 @@ Tests are organized by feature area and require real Datadog API access:
 ## Claude Desktop Integration
 
 The server integrates with Claude Desktop via MCP configuration:
+
+### Default UVX Integration (Recommended)
 ```json
 {
   "mcpServers": {
     "datadog": {
-      "command": "docker",
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/shelfio/datadog-mcp.git@v0.0.5", "datadog-mcp"],
+      "env": {
+        "DD_API_KEY": "your-datadog-api-key",
+        "DD_APP_KEY": "your-datadog-application-key"
+      }
+    }
+  }
+}
+```
+
+### Alternative Podman Integration
+```json
+{
+  "mcpServers": {
+    "datadog": {
+      "command": "podman",
       "args": ["run", "-i", "-e", "DD_API_KEY=${DD_API_KEY}", "-e", "DD_APP_KEY=${DD_APP_KEY}", "magistersart/datadog-mcp:latest"]
     }
   }

@@ -31,7 +31,12 @@ def get_tool_definition() -> Tool:
                     "description": "Maximum number of metrics to return",
                     "minimum": 1,
                     "maximum": 10000,
-                    "default": 100,
+                    "default": 50,
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "Pagination cursor from previous response (for getting next page)",
+                    "default": "",
                 },
                 "format": {
                     "type": "string",
@@ -52,13 +57,15 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
         args = request.arguments or {}
         
         filter_query = args.get("filter", "")
-        limit = args.get("limit", 100)
+        limit = args.get("limit", 50)
+        cursor = args.get("cursor", "")
         format_type = args.get("format", "list")
         
         # Fetch metrics list
         metrics_response = await fetch_metrics_list(
             filter_query=filter_query,
-            limit=limit
+            limit=limit,
+            cursor=cursor if cursor else None
         )
         
         if "data" not in metrics_response:
@@ -69,6 +76,11 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
         
         metrics = metrics_response["data"]
         
+        # Get pagination info
+        meta = metrics_response.get("meta", {})
+        pagination = meta.get("pagination", {})
+        next_cursor = pagination.get("next_cursor")
+        
         # Format output
         if format_type == "json":
             content = json.dumps(metrics_response, indent=2)
@@ -76,6 +88,10 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
             content = f"Found {len(metrics)} metrics"
             if filter_query:
                 content += f" matching filter: '{filter_query}'"
+            if cursor:
+                content += f" (using cursor pagination)"
+            if next_cursor:
+                content += f"\nNext cursor: {next_cursor}"
             content += f"\n\nFirst 10 metrics:\n"
             for i, metric in enumerate(metrics[:10]):
                 metric_id = metric.get("id", "unknown")
@@ -87,8 +103,12 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
             if filter_query:
                 content += f" (filtered by: '{filter_query}')"
             content += f" | Total: {len(metrics)}"
+            if cursor:
+                content += f" (cursor pagination)"
             if limit < len(metrics):
                 content += f" (showing first {limit})"
+            if next_cursor:
+                content += f"\nNext cursor: {next_cursor}"
             content += "\n" + "=" * len(content.split('\n')[-1]) + "\n\n"
             
             if metrics:

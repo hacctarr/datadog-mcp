@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.0.5] - 2025-06-27
+
+### Added
+- **Monitoring & Alerting Tools**
+  - `list_monitors` - List all Datadog monitors with filtering by name, tags, and monitor tags
+  - `list_slos` - List Service Level Objectives with filtering by name, tags, and query support
+  - Comprehensive filtering options for both monitors and SLOs
+  - Multiple output formats (table, json, summary) for monitoring tools
+
+### Enhanced
+- Extended tool registry in server.py with new monitoring capabilities
+- Updated README with monitoring tools documentation
+- Added examples for monitor and SLO management usage
+
+### Technical
+- New API endpoints: `/api/v1/monitor` and `/api/v1/slo`
+- Enhanced Datadog API client with monitor and SLO support
+- Improved pagination handling for large monitor/SLO datasets
+
 ## [v0.0.4] - 2025-06-18
 
 ### Added
@@ -142,6 +161,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Version History Summary
 
+- **v0.0.5**: Monitoring & Alerting Tools (Monitors & SLOs)
+- **v0.0.4**: CI/CD Pipeline & UVX Support
 - **v0.0.3**: Service Definitions Management
 - **v0.0.2**: Enhanced Metrics & Logging System  
 - **v0.0.1**: Initial Release with Core MCP Server, Docker Support

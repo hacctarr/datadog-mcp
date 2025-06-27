@@ -34,6 +34,18 @@ def get_tool_definition() -> Tool:
                     "minimum": 1,
                     "maximum": 365,
                 },
+                "limit": {
+                    "type": "integer",
+                    "description": "Maximum number of pipeline events per repository (default: 100)",
+                    "default": 100,
+                    "minimum": 1,
+                    "maximum": 5000,
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "Pagination cursor from previous response (for getting next page)",
+                    "default": "",
+                },
             },
             "additionalProperties": False,
             "required": ["repositories"],
@@ -49,6 +61,8 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
         repositories = args.get("repositories", [])
         pipeline_name = args.get("pipeline_name")
         days_back = args.get("days_back", 90)
+        limit = args.get("limit", 100)
+        cursor = args.get("cursor", "")
         
         if not repositories:
             return CallToolResult(
@@ -57,17 +71,26 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
             )
         
         all_pipelines = []
+        pagination_info = {}
         
         # Fetch pipelines for each repository
         for repo in repositories:
-            events = await fetch_ci_pipelines(
+            response = await fetch_ci_pipelines(
                 repository=repo,
                 pipeline_name=pipeline_name,
                 days_back=days_back,
-                limit=1000,
+                limit=limit,
+                cursor=cursor if cursor else None,
             )
+            events = response.get("data", [])
             pipelines = extract_pipeline_info(events)
             all_pipelines.extend(pipelines)
+            
+            # Collect pagination info from last repo (for simplicity)
+            if repo == repositories[-1]:
+                meta = response.get("meta", {})
+                page = meta.get("page", {})
+                pagination_info["next_cursor"] = page.get("after")
         
         # Remove duplicates and sort
         unique_pipelines = {}
@@ -79,6 +102,10 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
         
         # Format as table
         content = format_as_table(result)
+        
+        # Add pagination info if available
+        if pagination_info.get("next_cursor"):
+            content += f"\n\nNext cursor: {pagination_info['next_cursor']}"
         
         return CallToolResult(
             content=[TextContent(type="text", text=content)],

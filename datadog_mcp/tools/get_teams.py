@@ -33,6 +33,19 @@ def get_tool_definition() -> Tool:
                     "description": "Include team member details (default: true)",
                     "default": True,
                 },
+                "page_size": {
+                    "type": "integer",
+                    "description": "Number of teams per page (default: 50, max: 100)",
+                    "default": 50,
+                    "minimum": 1,
+                    "maximum": 100,
+                },
+                "page_number": {
+                    "type": "integer",
+                    "description": "Page number (0-indexed, default: 0)",
+                    "default": 0,
+                    "minimum": 0,
+                },
                 "format": {
                     "type": "string",
                     "description": "Output format",
@@ -52,11 +65,18 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
         
         team_name = args.get("team_name")
         include_members = args.get("include_members", True)
+        page_size = args.get("page_size", 50)
+        page_number = args.get("page_number", 0)
         format_type = args.get("format", "table")
         
-        # Fetch all teams
-        teams_data = await fetch_teams()
+        # Fetch teams with pagination
+        teams_response = await fetch_teams(page_size=page_size, page_number=page_number)
+        teams_data = teams_response.get("data", [])
         teams = extract_team_info(teams_data)
+        
+        # Get pagination info
+        meta = teams_response.get("meta", {})
+        pagination = meta.get("pagination", {})
         
         if not teams:
             return CallToolResult(
@@ -122,14 +142,25 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
             else:
                 content = format_teams_as_table(teams)
         
-        # Add summary header
-        summary = f"Found {len(teams)} team(s)"
+        # Add summary header with pagination info
+        total_count = pagination.get("total_count", len(teams))
+        summary = f"Found {total_count} team(s) total"
+        if page_size < total_count:
+            summary += f" (showing page {page_number + 1}, {len(teams)} teams)"
         if team_name:
             summary += f" matching '{team_name}'"
         if include_members and format_type != "table":
             summary += " (with member details)"
         
-        final_content = f"{summary}\n{'=' * len(summary)}\n\n{content}"
+        # Add pagination info
+        if pagination and total_count > page_size:
+            total_pages = pagination.get("total_pages", 1)
+            current_page = page_number + 1
+            summary += f"\nPage {current_page} of {total_pages}"
+            if current_page < total_pages:
+                summary += f" | Use page_number={page_number + 1} for next page"
+        
+        final_content = f"{summary}\n{'=' * len(summary.split('\n')[0])}\n\n{content}"
         
         return CallToolResult(
             content=[TextContent(type="text", text=final_content)],

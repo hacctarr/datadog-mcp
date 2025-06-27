@@ -36,10 +36,15 @@ def get_tool_definition() -> Tool:
                 },
                 "limit": {
                     "type": "integer",
-                    "description": "Maximum number of results (default: 1000)",
-                    "default": 1000,
+                    "description": "Maximum number of results (default: 100)",
+                    "default": 100,
                     "minimum": 1,
                     "maximum": 5000,
+                },
+                "cursor": {
+                    "type": "string",
+                    "description": "Pagination cursor from previous response (for getting next page)",
+                    "default": "",
                 },
                 "format": {
                     "type": "string",
@@ -61,25 +66,44 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
         repository = args.get("repository")
         pipeline_name = args.get("pipeline_name")
         days_back = args.get("days_back", 90)
-        limit = args.get("limit", 1000)
+        limit = args.get("limit", 100)
+        cursor = args.get("cursor", "")
         format_type = args.get("format", "table")
         
         # Fetch pipeline events
-        events = await fetch_ci_pipelines(
+        response = await fetch_ci_pipelines(
             repository=repository,
             pipeline_name=pipeline_name,
             days_back=days_back,
             limit=limit,
+            cursor=cursor if cursor else None,
         )
+        
+        events = response.get("data", [])
         
         # Extract unique pipeline info
         pipelines = extract_pipeline_info(events)
         
+        # Get pagination info
+        meta = response.get("meta", {})
+        page = meta.get("page", {})
+        next_cursor = page.get("after")
+        
         # Format output
         if format_type == "json":
-            content = json.dumps(pipelines, indent=2)
+            # Include pagination info in JSON response
+            output = {
+                "pipelines": pipelines,
+                "pagination": {
+                    "next_cursor": next_cursor,
+                    "has_more": bool(next_cursor)
+                }
+            }
+            content = json.dumps(output, indent=2)
         else:
             content = format_as_table(pipelines)
+            if next_cursor:
+                content += f"\n\nNext cursor: {next_cursor}"
         
         return CallToolResult(
             content=[TextContent(type="text", text=content)],
