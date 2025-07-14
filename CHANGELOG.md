@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [v0.0.6] - 2025-07-14
+
+### Added
+- **Enhanced Log Processing**
+  - Enhanced log extraction to support new content format with additional attributes
+  - Added new tool for retrieving field values from Datadog APIs
+  - Improved log parsing capabilities for better data extraction
+
+### Changed
+- **Dependency Updates**
+  - Upgraded to proper official Datadog SDK client
+  - Updated Datadog API client dependencies
+  - Improved MCP server self-referencing configuration
+
+### Technical
+- Merged PR #3 for enhanced error pattern detection
+- Enhanced log content format handling
+- Added support for additional log attributes extraction
+
 ## [v0.0.5] - 2025-06-27
 
 ### Added
