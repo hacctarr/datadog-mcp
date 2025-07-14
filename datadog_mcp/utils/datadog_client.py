@@ -7,6 +7,19 @@ import os
 from typing import Any, Dict, List, Optional
 
 import httpx
+from datadog_api_client import ApiClient, Configuration
+from datadog_api_client.v2.api.logs_api import LogsApi
+from datadog_api_client.v2.model.logs_list_request import LogsListRequest
+from datadog_api_client.v2.model.logs_list_request_page import LogsListRequestPage
+from datadog_api_client.v2.model.logs_query_filter import LogsQueryFilter
+from datadog_api_client.v2.model.logs_query_options import LogsQueryOptions
+from datadog_api_client.v2.model.logs_sort import LogsSort
+from datadog_api_client.v2.model.logs_aggregate_request import LogsAggregateRequest
+from datadog_api_client.v2.model.logs_aggregation_function import LogsAggregationFunction
+from datadog_api_client.v2.model.logs_compute import LogsCompute
+from datadog_api_client.v2.model.logs_compute_type import LogsComputeType
+from datadog_api_client.v2.model.logs_group_by import LogsGroupBy
+from datadog_api_client.v2.model.logs_aggregate_sort import LogsAggregateSort
 
 logger = logging.getLogger(__name__)
 
@@ -20,6 +33,14 @@ DATADOG_APP_KEY = os.getenv("DD_APP_KEY")
 if not DATADOG_API_KEY or not DATADOG_APP_KEY:
     logger.error("DD_API_KEY and DD_APP_KEY environment variables must be set")
     raise ValueError("Datadog API credentials not configured")
+
+
+def get_datadog_configuration() -> Configuration:
+    """Get Datadog API configuration."""
+    configuration = Configuration()
+    configuration.api_key["apiKeyAuth"] = DATADOG_API_KEY
+    configuration.api_key["appKeyAuth"] = DATADOG_APP_KEY
+    return configuration
 
 
 async def fetch_ci_pipelines(
@@ -79,53 +100,129 @@ async def fetch_logs(
     limit: int = 50,
     cursor: Optional[str] = None,
 ) -> Dict[str, Any]:
-    """Fetch logs from Datadog API with flexible filtering."""
-    url = f"{DATADOG_API_URL}/api/v2/logs/events/search"
+    """Fetch logs from Datadog API with flexible filtering using SDK."""
+    try:
+        # Build query filter
+        query_parts = []
+        
+        # Add filters from the filters dictionary
+        if filters:
+            for key, value in filters.items():
+                query_parts.append(f"{key}:{value}")
+        
+        # Add free-text query
+        if query:
+            query_parts.append(query)
+        
+        combined_query = " AND ".join(query_parts) if query_parts else "*"
+        
+        # Create request body
+        body = LogsListRequest(
+            filter=LogsQueryFilter(
+                query=combined_query,
+                _from=f"now-{time_range}",
+                to="now",
+            ),
+            options=LogsQueryOptions(
+                timezone="GMT",
+            ),
+            page=LogsListRequestPage(
+                limit=limit,
+                cursor=cursor,
+            ),
+            sort=LogsSort.TIMESTAMP_DESCENDING,  # Most recent first
+        )
+        
+        configuration = get_datadog_configuration()
+        with ApiClient(configuration) as api_client:
+            api_instance = LogsApi(api_client)
+            response = api_instance.list_logs(body=body)
+            
+            # Convert to dict format for backward compatibility
+            result = {
+                "data": [log.to_dict() for log in response.data] if response.data else [],
+                "meta": response.meta.to_dict() if response.meta else {},
+                "links": response.links.to_dict() if response.links else {},
+            }
+            
+            return result
     
-    headers = {
-        "Content-Type": "application/json",
-        "DD-API-KEY": DATADOG_API_KEY,
-        "DD-APPLICATION-KEY": DATADOG_APP_KEY,
-    }
+    except Exception as e:
+        logger.error(f"Error fetching logs: {e}")
+        raise
+
+
+async def fetch_logs_filter_values(
+    field_name: str,
+    time_range: str = "1h",
+    query: Optional[str] = None,
+    limit: int = 100,
+) -> Dict[str, Any]:
+    """
+    Fetch possible values for a specific log field to understand filtering options.
     
-    # Build query filter
-    query_parts = []
+    Args:
+        field_name: The field to get possible values for (e.g., 'service', 'env', 'status', 'host')
+        time_range: Time range to look back (default: 1h)
+        query: Optional query to filter logs before aggregation
+        limit: Maximum number of values to return
+        
+    Returns:
+        Dict containing the field values and their counts
+    """
+    try:
+        # Build base query
+        base_query = query if query else "*"
+        
+        # Create aggregation request to group by the specified field
+        body = LogsAggregateRequest(
+            compute=[
+                LogsCompute(
+                    aggregation=LogsAggregationFunction.COUNT,
+                    type=LogsComputeType.TOTAL,
+                ),
+            ],
+            filter=LogsQueryFilter(
+                query=base_query,
+                _from=f"now-{time_range}",
+                to="now",
+            ),
+            group_by=[
+                LogsGroupBy(
+                    facet=field_name,
+                    limit=limit,
+                ),
+            ],
+        )
+        
+        configuration = get_datadog_configuration()
+        with ApiClient(configuration) as api_client:
+            api_instance = LogsApi(api_client)
+            response = api_instance.aggregate_logs(body=body)
+            
+            # Extract field values from buckets
+            field_values = []
+            if response.data and response.data.buckets:
+                for bucket in response.data.buckets:
+                    if bucket.by and field_name in bucket.by:
+                        field_values.append({
+                            "value": bucket.by[field_name],
+                            "count": bucket.computes.get("c0", 0) if bucket.computes else 0
+                        })
+            
+            # Sort by count descending
+            field_values.sort(key=lambda x: x["count"], reverse=True)
+            
+            return {
+                "field": field_name,
+                "time_range": time_range,
+                "values": field_values,
+                "total_values": len(field_values),
+            }
     
-    # Add filters from the filters dictionary
-    if filters:
-        for key, value in filters.items():
-            query_parts.append(f"{key}:{value}")
-    
-    # Add free-text query
-    if query:
-        query_parts.append(query)
-    
-    combined_query = " AND ".join(query_parts) if query_parts else "*"
-    
-    payload = {
-        "filter": {
-            "query": combined_query,
-            "from": f"now-{time_range}",
-            "to": "now",
-        },
-        "page": {"limit": limit},
-        "sort": "-timestamp",  # Most recent first
-    }
-    
-    if cursor:
-        payload["page"]["cursor"] = cursor
-    
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.post(url, headers=headers, json=payload)
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPError as e:
-            logger.error(f"HTTP error fetching logs: {e}")
-            raise
-        except Exception as e:
-            logger.error(f"Error fetching logs: {e}")
-            raise
+    except Exception as e:
+        logger.error(f"Error fetching filter values for field '{field_name}': {e}")
+        raise
 
 
 # Backward compatibility alias
