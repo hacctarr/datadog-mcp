@@ -12,9 +12,9 @@ from typing import List
 from mcp.server import Server
 from mcp.server.models import InitializationOptions
 from mcp.server.stdio import stdio_server
-from mcp.types import CallToolRequest, CallToolResult, Tool, ServerCapabilities, TextContent
+from mcp.types import Tool, ServerCapabilities, TextContent
 
-from .tools import get_fingerprints, list_pipelines, get_logs, get_teams, get_metrics, get_metric_fields, get_metric_field_values, list_metrics, list_service_definitions, get_service_definition, list_monitors, list_slos
+from .tools import get_fingerprints, list_pipelines, get_logs, get_teams, get_metrics, get_metric_fields, get_metric_field_values, list_metrics, list_service_definitions, get_service_definition, list_monitors, list_slos, get_logs_field_values
 
 # Configure logging
 logging.basicConfig(
@@ -40,6 +40,10 @@ TOOLS = {
     "get_logs": {
         "definition": get_logs.get_tool_definition,
         "handler": get_logs.handle_call,
+    },
+    "get_logs_field_values": {
+        "definition": get_logs_field_values.get_tool_definition,
+        "handler": get_logs_field_values.handle_call,
     },
     "get_teams": {
         "definition": get_teams.get_tool_definition,
