@@ -68,31 +68,122 @@ def extract_log_info(log_events: List[Dict[str, Any]]) -> List[Dict[str, str]]:
     logs = []
     
     for event in log_events:
-        if "attributes" not in event:
+        # Handle both old format (attributes) and new format (content)
+        if "content" in event:
+            # New realistic format with content wrapper
+            content = event["content"]
+            attrs = content.get("attributes", {})
+            
+            # Extract basic log info from content level
+            log_entry = {
+                "timestamp": content.get("timestamp", ""),
+                "level": content.get("status", attrs.get("level", "unknown")),
+                "service": content.get("service", "unknown"),
+                "host": content.get("host", "unknown"),
+                "message": content.get("message", ""),
+            }
+            
+            # Add tags if available (much more comprehensive now)
+            if "tags" in content and isinstance(content["tags"], list):
+                # Show only the most relevant tags to avoid clutter
+                relevant_tags = []
+                for tag in content["tags"]:
+                    if any(prefix in tag for prefix in ["env:", "owner:", "project:", "stage:", "region:", "source:"]):
+                        relevant_tags.append(tag)
+                if relevant_tags:
+                    log_entry["tags"] = ", ".join(relevant_tags)
+            
+        elif "attributes" in event:
+            # Old format for backward compatibility
+            attrs = event["attributes"]
+            
+            # Extract basic log info
+            log_entry = {
+                "timestamp": attrs.get("timestamp", ""),
+                "level": attrs.get("status", "unknown"),
+                "service": attrs.get("service", "unknown"),
+                "host": attrs.get("host", "unknown"),
+                "message": attrs.get("message", ""),
+            }
+            
+            # Add tags if available
+            if "tags" in attrs and isinstance(attrs["tags"], list):
+                log_entry["tags"] = ", ".join(attrs["tags"])
+            
+            # For old format, attributes are nested under "attributes"
+            attrs = attrs.get("attributes", {})
+        else:
             continue
         
-        attrs = event["attributes"]
-        
-        # Extract basic log info
-        log_entry = {
-            "timestamp": attrs.get("timestamp", ""),
-            "level": attrs.get("status", "unknown"),
-            "service": attrs.get("service", "unknown"),
-            "host": attrs.get("host", "unknown"),
-            "message": attrs.get("message", ""),
-        }
-        
-        # Add additional context if available
-        if "attributes" in attrs and isinstance(attrs["attributes"], dict):
-            extra_attrs = attrs["attributes"]
-            
+        # Add additional context from attributes
+        if attrs and isinstance(attrs, dict):
             # Add useful extra fields
-            if "environment" in extra_attrs:
-                log_entry["environment"] = extra_attrs["environment"]
-            if "lambda" in extra_attrs and "name" in extra_attrs["lambda"]:
-                log_entry["function"] = extra_attrs["lambda"]["name"]
-            if "level" in extra_attrs:
-                log_entry["level"] = extra_attrs["level"]
+            if "environment" in attrs:
+                log_entry["environment"] = str(attrs["environment"])
+            if "duration" in attrs:
+                log_entry["duration"] = str(attrs["duration"])
+            if "customAttribute" in attrs:
+                log_entry["customAttribute"] = str(attrs["customAttribute"])
+            
+            # Lambda-specific fields
+            if "lambda" in attrs and isinstance(attrs["lambda"], dict):
+                lambda_info = attrs["lambda"]
+                if "name" in lambda_info:
+                    log_entry["function"] = str(lambda_info["name"])
+                if "arn" in lambda_info:
+                    log_entry["lambda_arn"] = str(lambda_info["arn"])
+                if "request_id" in lambda_info:
+                    log_entry["request_id"] = str(lambda_info["request_id"])
+            
+            # Task type statistics (specific to caorchestrator)
+            if "task_type_stats" in attrs and isinstance(attrs["task_type_stats"], dict):
+                task_stats = attrs["task_type_stats"]
+                total_tasks = sum(task_stats.values())
+                if total_tasks > 0:
+                    # Show only non-zero task types
+                    active_tasks = [f"{k}:{v}" for k, v in task_stats.items() if v > 0]
+                    if active_tasks:
+                        log_entry["task_stats"] = ", ".join(active_tasks)
+                    log_entry["total_tasks"] = str(total_tasks)
+            
+            # AWS-specific information
+            if "aws" in attrs and isinstance(attrs["aws"], dict):
+                aws_info = attrs["aws"]
+                if "awslogs" in aws_info:
+                    awslogs = aws_info["awslogs"]
+                    if "logGroup" in awslogs:
+                        log_entry["log_group"] = str(awslogs["logGroup"])
+                    if "logStream" in awslogs:
+                        # Truncate log stream for readability
+                        log_stream = str(awslogs["logStream"])
+                        if len(log_stream) > 50:
+                            log_stream = log_stream[:47] + "..."
+                        log_entry["log_stream"] = log_stream
+                
+                if "function_version" in aws_info:
+                    log_entry["function_version"] = str(aws_info["function_version"])
+            
+            # Override level if specified in attributes
+            if "level" in attrs:
+                log_entry["level"] = str(attrs["level"])
+            
+            # Add other interesting custom attributes (but skip verbose ones)
+            skip_attrs = {
+                "environment", "duration", "customAttribute", "lambda", "level", 
+                "task_type_stats", "aws", "service", "host", "id", "timestamp"
+            }
+            
+            for key, value in attrs.items():
+                if key not in skip_attrs:
+                    # Convert complex objects to strings, but keep it concise
+                    if isinstance(value, dict):
+                        if len(value) <= 3:  # Only show small dicts
+                            log_entry[f"attr_{key}"] = str(value)
+                    elif isinstance(value, list):
+                        if len(value) <= 5:  # Only show small lists
+                            log_entry[f"attr_{key}"] = str(value)
+                    else:
+                        log_entry[f"attr_{key}"] = str(value)
         
         logs.append(log_entry)
     
@@ -150,6 +241,17 @@ def format_logs_as_text(logs: List[Dict[str, str]]) -> str:
         
         line = f"[{timestamp}] {level} {service}: {message}"
         lines.append(line)
+        
+        # Add additional attributes if present
+        attrs_to_show = []
+        for key, value in log.items():
+            if key not in ["timestamp", "level", "service", "message"] and value:
+                attrs_to_show.append(f"{key}: {value}")
+        
+        if attrs_to_show:
+            # Add indented attributes
+            for attr in attrs_to_show:
+                lines.append(f"  {attr}")
     
     return "\n".join(lines)
 
