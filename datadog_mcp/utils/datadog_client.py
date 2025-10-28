@@ -142,9 +142,10 @@ async def fetch_logs(
             result = {
                 "data": [log.to_dict() for log in response.data] if response.data else [],
                 "meta": response.meta.to_dict() if response.meta else {},
-                "links": response.links.to_dict() if response.links else {},
+                # Note: LogsListResponse doesn't have a 'links' attribute in the current API version
+                # Pagination is handled via cursor in meta.page.after
             }
-            
+
             return result
     
     except Exception as e:
@@ -313,8 +314,20 @@ async def fetch_metrics(
     aggregation: str = "avg",
     filters: Optional[Dict[str, str]] = None,
     aggregation_by: Optional[List[str]] = None,
+    as_count: bool = False,
 ) -> Dict[str, Any]:
-    """Fetch metrics from Datadog API with flexible filtering."""
+    """Fetch metrics from Datadog API with flexible filtering.
+
+    Args:
+        metric_name: The metric to query
+        time_range: Time window to query
+        aggregation: Aggregation method (avg, sum, min, max, count)
+        filters: Tag filters to apply
+        aggregation_by: Fields to group by
+        as_count: If True, applies .as_count() to get totals instead of rates.
+                  Use for count/rate metrics (e.g., request.hits, error.count).
+                  Do NOT use for gauge metrics (e.g., cpu.percent, memory.usage).
+    """
     
     headers = {
         "DD-API-KEY": DATADOG_API_KEY,
@@ -333,12 +346,21 @@ async def fetch_metrics(
     # Combine filters with proper syntax first
     if filter_list:
         query_parts.append("{" + ",".join(filter_list) + "}")
-    
+    else:
+        # Datadog requires a scope - use {*} for "all sources" when no filters
+        query_parts.append("{*}")
+
     # Add aggregation_by to the query if specified (after filters)
     if aggregation_by:
         by_clause = ",".join(aggregation_by)
         query_parts.append(f" by {{{by_clause}}}")
-    
+
+    # Add .as_count() modifier if requested (for count/rate metrics)
+    # This converts rate metrics to totals instead of per-second rates
+    # Only use for count/rate metrics, NOT for gauge metrics
+    if as_count:
+        query_parts.append(".as_count()")
+
     query = "".join(query_parts)
     
     # Log the constructed query for debugging
