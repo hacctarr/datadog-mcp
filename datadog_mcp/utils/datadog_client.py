@@ -2,6 +2,7 @@
 Datadog API client utilities
 """
 
+import json
 import logging
 import os
 from typing import Any, Dict, List, Optional
@@ -838,15 +839,35 @@ async def fetch_traces(
 
     async with httpx.AsyncClient() as client:
         try:
+            logger.debug(f"Fetching traces with query: {combined_query}")
+            logger.debug(f"Request payload: {json.dumps(payload, indent=2)}")
+
             response = await client.post(url, headers=headers, json=payload, timeout=30.0)
             response.raise_for_status()
-            return response.json()
+
+            result = response.json()
+
+            # Validate we got a proper response
+            if result is None:
+                logger.error("API returned None")
+                raise ValueError("Datadog API returned null response")
+
+            if not isinstance(result, dict):
+                logger.error(f"API returned non-dict: {type(result)}")
+                raise ValueError(f"Datadog API returned unexpected type: {type(result)}")
+
+            logger.debug(f"Successfully fetched {len(result.get('data', []))} traces")
+            return result
 
         except httpx.HTTPError as e:
             logger.error(f"HTTP error fetching traces: {e}")
             if hasattr(e, 'response') and e.response is not None:
+                logger.error(f"Response status: {e.response.status_code}")
                 logger.error(f"Response body: {e.response.text}")
             raise
+        except json.JSONDecodeError as e:
+            logger.error(f"Failed to decode JSON response: {e}")
+            raise
         except Exception as e:
-            logger.error(f"Error fetching traces: {e}")
+            logger.error(f"Error fetching traces: {e}", exc_info=True)
             raise
