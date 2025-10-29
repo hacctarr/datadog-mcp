@@ -593,10 +593,26 @@ def extract_trace_info(trace_events: List[Dict[str, Any]]) -> List[Dict[str, Any
     Returns:
         List of processed trace dictionaries with extracted fields
     """
+    from datetime import datetime
+
     traces = []
 
     for event in trace_events:
         attrs = event.get("attributes", {})
+
+        # Calculate duration from timestamps if not provided directly
+        duration_ns = attrs.get("duration", 0)
+        if duration_ns == 0:
+            start_ts = attrs.get("start_timestamp", "")
+            end_ts = attrs.get("end_timestamp", "")
+            if start_ts and end_ts:
+                try:
+                    start_dt = datetime.fromisoformat(start_ts.replace('Z', '+00:00'))
+                    end_dt = datetime.fromisoformat(end_ts.replace('Z', '+00:00'))
+                    duration_seconds = (end_dt - start_dt).total_seconds()
+                    duration_ns = int(duration_seconds * 1_000_000_000)
+                except (ValueError, AttributeError):
+                    pass
 
         # Extract key fields
         trace = {
@@ -606,9 +622,9 @@ def extract_trace_info(trace_events: List[Dict[str, Any]]) -> List[Dict[str, Any
             "service": attrs.get("service", ""),
             "resource_name": attrs.get("resource_name", ""),
             "operation_name": attrs.get("operation_name", ""),
-            "duration_ns": attrs.get("duration", 0),
-            "duration_ms": round(attrs.get("duration", 0) / 1_000_000, 2),
-            "start_timestamp": attrs.get("start", 0),
+            "duration_ns": duration_ns,
+            "duration_ms": round(duration_ns / 1_000_000, 2),
+            "start_timestamp": attrs.get("start_timestamp", attrs.get("start", 0)),
             "status": attrs.get("status", ""),
             "error": attrs.get("error", 0),
             "env": attrs.get("env", ""),
