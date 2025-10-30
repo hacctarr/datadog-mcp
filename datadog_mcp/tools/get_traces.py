@@ -114,19 +114,42 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
                 if trace_id and trace_id not in trace_ids_seen:
                     trace_ids_seen.add(trace_id)
 
-                    # Fetch all spans for this trace_id
+                    # Fetch all spans for this trace_id with pagination
                     logger.debug(f"Fetching child spans for trace_id: {trace_id}")
-                    child_response = await fetch_traces(
-                        time_range=time_range,
-                        query=f"trace_id:{trace_id}",
-                        limit=1000,  # Get all spans in the trace
-                    )
+                    page_cursor = None
+                    page_num = 0
 
-                    if child_response and child_response.get("data"):
-                        all_spans.extend(child_response["data"])
-                    else:
-                        # If child fetch fails, include the original span
-                        all_spans.append(event)
+                    while True:
+                        page_num += 1
+                        child_response = await fetch_traces(
+                            time_range=time_range,
+                            query=f"trace_id:{trace_id}",
+                            limit=1000,  # Max per page
+                            cursor=page_cursor,
+                        )
+
+                        if child_response and child_response.get("data"):
+                            page_spans = child_response["data"]
+                            all_spans.extend(page_spans)
+                            logger.debug(f"  Page {page_num}: fetched {len(page_spans)} spans")
+
+                            # Check for more pages
+                            meta = child_response.get("meta", {})
+                            if meta is None:
+                                meta = {}
+                            page_info = meta.get("page", {})
+                            if page_info is None:
+                                page_info = {}
+                            page_cursor = page_info.get("after")
+
+                            if not page_cursor:
+                                # No more pages
+                                break
+                        else:
+                            # If child fetch fails, include the original span
+                            if page_num == 1:
+                                all_spans.append(event)
+                            break
                 else:
                     # No trace_id, just include the original span
                     all_spans.append(event)
