@@ -24,8 +24,8 @@ def get_tool_definition() -> Tool:
             "properties": {
                 "time_range": {
                     "type": "string",
-                    "description": "Time range to look back",
-                    "enum": ["1h", "4h", "8h", "1d", "7d", "14d", "30d"],
+                    "description": "Time range to look back (up to your plan's retention limit)",
+                    "enum": ["1h", "4h", "8h", "1d", "7d", "14d", "30d", "60d", "90d", "180d", "365d"],
                     "default": "1h",
                 },
                 "filters": {
