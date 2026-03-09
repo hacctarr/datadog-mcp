@@ -48,7 +48,9 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
                 if definition_type == "markdown":
                     text = definition.get("text")
                     if text:
-                        cells_text += f"\n   ```\n   {text}\n   ```"
+                        # Truncate long markdown for readability
+                        preview = text[:200] + "..." if len(text) > 200 else text
+                        cells_text += f"\n   📝 {preview}"
                 elif definition_type in ["timeseries", "log_stream", "trace_list", "query_value"]:
                     # Extract queries from requests
                     requests = definition.get("requests", [])
@@ -57,11 +59,11 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
                         for query_obj in queries:
                             query_str = query_obj.get("query")
                             if query_str:
-                                cells_text += f"\n   Query: `{query_str}`"
+                                cells_text += f"\n   📊 Query: `{query_str}`"
                         # Show display type/visualization
                         display_type = req.get("display_type")
                         if display_type:
-                            cells_text += f"\n   Display: {display_type}"
+                            cells_text += f"\n   📈 Visualization: {display_type}"
 
         # Get tags, handling None case
         tags = result.get('attributes', {}).get('tags')
