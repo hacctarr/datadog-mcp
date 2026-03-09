@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.7](https://github.com/hacctarr/datadog-mcp/compare/v0.3.6...v0.3.7) (2026-03-09)
+
+
+### Bug Fixes
+
+* improve create_monitor and update_monitor error handling and validation ([ca6a8ea](https://github.com/hacctarr/datadog-mcp/commit/ca6a8ea20f4728c58f24b28b03240476e70ca17d))
+* improve create_monitor and update_monitor error handling and validation ([c99bbf6](https://github.com/hacctarr/datadog-mcp/commit/c99bbf667c897407bce92b1a6e02bcdd2d7cf6a9))
+* include cell content in get_notebook output ([#11](https://github.com/hacctarr/datadog-mcp/issues/11)) ([3b7e57f](https://github.com/hacctarr/datadog-mcp/commit/3b7e57f4ec0c7b47ac3331f2d4855d5ec7d79ad6))
+
 ## [0.3.6](https://github.com/hacctarr/datadog-mcp/compare/v0.3.5...v0.3.6) (2026-02-20)
 
 
