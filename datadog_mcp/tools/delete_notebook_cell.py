@@ -2,6 +2,7 @@
 
 from mcp.types import CallToolRequest, CallToolResult, Tool, TextContent
 from ..utils.datadog_client import delete_notebook_cell as client_delete_notebook_cell
+from ..utils.datadog_client import get_notebook
 
 
 def get_tool_definition() -> Tool:
@@ -32,10 +33,14 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
         notebook_id = request.params.arguments.get("notebook_id")
         cell_id = request.params.arguments.get("cell_id")
 
-        result = await client_delete_notebook_cell(
+        await client_delete_notebook_cell(
             notebook_id=notebook_id,
             cell_id=cell_id,
         )
+
+        # Fetch updated notebook to get remaining cell count
+        notebook = await get_notebook(notebook_id)
+        remaining_cells = len(notebook.get('attributes', {}).get('cells', []))
 
         notebook_url = f"https://app.datadoghq.com/notebook/{notebook_id}"
 
@@ -43,7 +48,7 @@ async def handle_call(request: CallToolRequest) -> CallToolResult:
             f"**Cell Deleted from Notebook**\n\n"
             f"- **Notebook ID**: {notebook_id}\n"
             f"- **Deleted Cell ID**: {cell_id}\n"
-            f"- **Remaining Cells**: {len(result.get('attributes', {}).get('cells', []))}\n"
+            f"- **Remaining Cells**: {remaining_cells}\n"
             f"- **URL**: [{notebook_url}]({notebook_url})\n"
         )
 
