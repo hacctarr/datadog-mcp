@@ -257,8 +257,34 @@ class AWSSecretsManagerProvider(SecretProvider):
                     )
                     return cached
 
-                logger.error(f"Failed to fetch credentials from AWS Secrets Manager: {e}")
-                raise
+                # Provide clear error messaging for common AWS credential issues
+                error_msg = str(e)
+                if any(phrase in error_msg for phrase in ["Unable to locate credentials", "not found in", "NoCredentialsError"]):
+                    detailed_error = (
+                        f"AWS credentials not available: {e}\n"
+                        f"Ensure you are logged in to AWS SSO: aws sso login --profile {self._profile}\n"
+                        f"Or set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables"
+                    )
+                elif "NoSuchSecretException" in error_msg or "not found" in error_msg:
+                    detailed_error = (
+                        f"AWS Secrets Manager secret not found: {e}\n"
+                        f"Verify secrets exist at configured paths:\n"
+                        f"  - {self._api_key_secret}\n"
+                        f"  - {self._app_key_secret}\n"
+                        f"In region: {self._region}"
+                    )
+                elif "AccessDenied" in error_msg or "UnauthorizedOperation" in error_msg:
+                    detailed_error = (
+                        f"AWS Secrets Manager access denied: {e}\n"
+                        f"Verify IAM permissions for profile '{self._profile}' include:"
+                        f"\n  - secretsmanager:GetSecretValue"
+                        f"\n  - secretsmanager:DescribeSecret"
+                    )
+                else:
+                    detailed_error = f"Failed to fetch credentials from AWS Secrets Manager: {e}"
+
+                logger.error(detailed_error)
+                raise ValueError(detailed_error) from e
 
     async def close(self) -> None:
         """Clean up resources."""

@@ -4,6 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Development Workflow (CRITICAL)
 
+### Claude Code Responsibility
+Claude is the designated codeowner for datadog-mcp. When issues or questions are raised:
+- Investigate and validate thoroughly before asking for clarification
+- Test implementations directly using available tools and tests
+- Provide solutions and diagnoses, not just diagnostic questions
+- Update CLAUDE.md with findings to help future sessions
+
 ### ⚠️ REPOSITORY WARNING (READ THIS FIRST)
 **This repository has multiple GitHub mirrors. Use ONLY the canonical repository:**
 

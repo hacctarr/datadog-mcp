@@ -293,7 +293,15 @@ async def async_get_api_key() -> Optional[str]:
                 if credentials:
                     return credentials.api_key
         except Exception as e:
-            logger.warning(f"Failed to fetch API key from AWS Secrets Manager: {e}. Falling back to local storage.")
+            error_msg = str(e)
+            if "Unable to locate credentials" in error_msg or "not found in" in error_msg:
+                logger.warning(
+                    f"AWS credentials not available (not logged in to SSO?): {e}\n"
+                    f"To use AWS Secrets Manager, login: aws sso login --profile <profile>\n"
+                    f"Falling back to local credentials."
+                )
+            else:
+                logger.warning(f"Failed to fetch API key from AWS Secrets Manager: {e}. Falling back to local storage.")
 
     # Fall back to local storage/env vars
     return get_api_key()
@@ -314,7 +322,15 @@ async def async_get_app_key() -> Optional[str]:
                 if credentials:
                     return credentials.app_key
         except Exception as e:
-            logger.warning(f"Failed to fetch app key from AWS Secrets Manager: {e}. Falling back to local storage.")
+            error_msg = str(e)
+            if "Unable to locate credentials" in error_msg or "not found in" in error_msg:
+                logger.warning(
+                    f"AWS credentials not available (not logged in to SSO?): {e}\n"
+                    f"To use AWS Secrets Manager, login: aws sso login --profile <profile>\n"
+                    f"Falling back to local credentials."
+                )
+            else:
+                logger.warning(f"Failed to fetch app key from AWS Secrets Manager: {e}. Falling back to local storage.")
 
     # Fall back to local storage/env vars
     return get_app_key()
