@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.8](https://github.com/hacctarr/datadog-mcp/compare/v0.3.7...v0.3.8) (2026-03-10)
+
+
+### Bug Fixes
+
+* improve AWS Secrets Manager error messages for SSO login and credential issues ([#14](https://github.com/hacctarr/datadog-mcp/issues/14)) ([32cae07](https://github.com/hacctarr/datadog-mcp/commit/32cae07d0477ee76cc5139ebc6b0027175073ed6))
+
 ## [0.3.7](https://github.com/hacctarr/datadog-mcp/compare/v0.3.6...v0.3.7) (2026-03-09)
 
 
